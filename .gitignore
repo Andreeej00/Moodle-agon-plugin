@@ -1,0 +1,18 @@
+# Dependencies (restore with `composer install`)
+vendor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*~
+
+# Node / build caches
+node_modules/
+
+# Logs
+*.log
