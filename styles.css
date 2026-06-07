@@ -78,6 +78,10 @@
 .agon .chip{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-family:ui-monospace,monospace;font-size:13px;cursor:grab;user-select:none}
 .agon .chip.is-sel{border-color:var(--accent);background:var(--sel)}
 .agon .chip.is-used{opacity:.35;pointer-events:none}
+.agon .codeline{min-height:1.9em}
+.agon .codeline.is-hidden{display:none}
+.agon .reveal-line{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;background:var(--sel);color:var(--accent);border:1.5px dashed var(--accent);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.agon .blank.is-locked{cursor:not-allowed;border-bottom-style:solid;opacity:.85}
 
 .agon .score-big{font-size:48px;font-weight:800;text-align:center;color:var(--accent);line-height:1;margin-bottom:6px}
 .agon .score-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}

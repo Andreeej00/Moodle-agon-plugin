@@ -115,7 +115,9 @@ $agondata = [
 ];
 
 // Load in the footer (false), so it runs after the window.AGON data is printed below.
-$PAGE->requires->js(new moodle_url('/mod/agon/js/' . $view . '.js', ['v' => get_config('mod_agon', 'version')]), false);
+// Cache-buster keyed to the file's modified time, so JS edits are picked up on a normal refresh.
+$jsfile = '/mod/agon/js/' . $view . '.js';
+$PAGE->requires->js(new moodle_url($jsfile, ['v' => filemtime($CFG->dirroot . $jsfile)]), false);
 
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('mod_agon/' . $view, [

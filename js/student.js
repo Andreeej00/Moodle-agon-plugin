@@ -14,7 +14,7 @@
   // Build the flow + stepper from the games the teacher enabled.
   var steps = [], flow = ['start'];
   if (games.crossword) { steps.push({label:'Crossword', icon:'▦', stages:['crossword']}); flow.push('crossword'); }
-  if (games.question)  { steps.push({label:'Question', icon:'?', stages:['question','reveal']}); flow.push('question','reveal'); }
+  if (games.question)  { steps.push({label:'Question', icon:'?', stages:['question']}); flow.push('question'); }
   if (games.coding)    { steps.push({label:'Code', icon:'{ }', stages:['coding','review']}); flow.push('coding','review'); }
   steps.push({label:'Result', icon:'★', stages:['results']}); flow.push('results');
   var stepOf = { start:0 };
@@ -78,10 +78,10 @@
     var host = $('q-host'); if (!host) { return; }
     var q = (D.questions && D.questions[0]) || null;
     if (!q) { host.innerHTML = '<p class="lead">No question configured.</p>'; return; }
-    if ($('reveal-answer')) { $('reveal-answer').textContent = q.options[q.correct] + ' — correct answer.'; }
-    if ($('q-explain')) { $('q-explain').textContent = q.explanation || ''; }
     if (host.dataset.done) { return; }
-    host.innerHTML = '<div class="q__text">'+esc(q.question)+'</div>' + q.options.map(function(o){ return '<button class="opt" type="button">'+esc(o)+'</button>'; }).join('');
+    host.innerHTML = '<div class="q__text">'+esc(q.question)+'</div>' +
+      '<p class="peek-hint" style="text-align:left;margin:2px 0 10px">&#128072; hover an answer to reveal it</p>' +
+      q.options.map(function(o){ return '<button class="opt peek" type="button">'+esc(o)+'</button>'; }).join('');
     host.dataset.done = "1";
     host.querySelectorAll('.opt').forEach(function(o){ o.addEventListener('click', function(){
       host.querySelectorAll('.opt').forEach(function(x){ x.classList.remove('is-selected'); });
@@ -106,11 +106,27 @@
     var host = $('coding'); if (!host || host.dataset.done) { return; }
     host.innerHTML = seqs.map(function(s,si){
       var bi = 0;
-      var codehtml = esc(s.code || '').replace(/____/g, function(){ return '<span class="blank" data-seq="'+si+'" data-b="'+(bi++)+'">____</span>'; });
+      var lines = (s.code || '').split('\n');
+      var linehtml = lines.map(function(line, li){
+        var lh = esc(line).replace(/____/g, function(){ return '<span class="blank" data-seq="'+si+'" data-b="'+(bi++)+'">____</span>'; });
+        return '<div class="codeline'+(li === 0 ? '' : ' is-hidden')+'">'+(lh || '&nbsp;')+'</div>';
+      }).join('');
       var chips = (s.options || []).map(function(o,oi){ return '<span class="chip" id="c'+si+'-'+oi+'" draggable="true" data-seq="'+si+'" data-v="'+esc(o)+'">'+esc(o)+'</span>'; }).join('');
-      return '<div class="seq"><div class="seq__title">'+esc(s.title || ('Sequence '+(si+1)))+'</div><div class="code">'+codehtml+'</div><div class="chips">'+chips+'</div></div>';
+      var revealbtn = lines.length > 1 ? '<button type="button" class="reveal-line" data-seq="'+si+'">▼ reveal next line</button>' : '';
+      return '<div class="seq"><div class="seq__title">'+esc(s.title || ('Sequence '+(si+1)))+'</div><div class="code">'+linehtml+'</div>'+revealbtn+'<div class="chips">'+chips+'</div></div>';
     }).join('');
     host.dataset.done = "1";
+    host.querySelectorAll('.reveal-line').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var seqEl = btn.parentNode;
+        // Lock the blanks in lines already revealed, so earlier lines can't be changed after moving on
+        // (stops "reveal everything, then screenshot it all to an AI").
+        seqEl.querySelectorAll('.codeline:not(.is-hidden) .blank').forEach(function(bl){ bl.classList.add('is-locked'); });
+        var next = seqEl.querySelector('.codeline.is-hidden');
+        if (next) { next.classList.remove('is-hidden'); }
+        if (!seqEl.querySelector('.codeline.is-hidden')) { btn.style.display = 'none'; }
+      });
+    });
     host.querySelectorAll('.chip').forEach(function(ch){
       ch.addEventListener('click', function(){ setPick(ch); });
       ch.addEventListener('dragstart', function(){ dragging = ch; });
@@ -118,13 +134,15 @@
     });
     host.querySelectorAll('.blank').forEach(function(bl){
       bl.addEventListener('click', function(){
+        if (bl.classList.contains('is-locked')) { return; }
         if (bl.classList.contains('is-filled')) { clearBlank(bl); return; }
         if (pick && pick.dataset.seq === bl.dataset.seq) { fill(bl, pick); }
       });
-      bl.addEventListener('dragover', function(e){ if (dragging && dragging.dataset.seq===bl.dataset.seq && !dragging.classList.contains('is-used')) { e.preventDefault(); bl.classList.add('drag-over'); } });
+      bl.addEventListener('dragover', function(e){ if (!bl.classList.contains('is-locked') && dragging && dragging.dataset.seq===bl.dataset.seq && !dragging.classList.contains('is-used')) { e.preventDefault(); bl.classList.add('drag-over'); } });
       bl.addEventListener('dragleave', function(){ bl.classList.remove('drag-over'); });
       bl.addEventListener('drop', function(e){
         e.preventDefault(); bl.classList.remove('drag-over');
+        if (bl.classList.contains('is-locked')) { return; }
         if (dragging && dragging.dataset.seq===bl.dataset.seq && !dragging.classList.contains('is-used')) {
           if (bl.classList.contains('is-filled')) { clearBlank(bl); }
           fill(bl, dragging);
