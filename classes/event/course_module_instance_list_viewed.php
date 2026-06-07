@@ -15,17 +15,19 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * The mod_agon course module instance list viewed event.
  *
  * @package     mod_agon
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace mod_agon\event;
+
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'mod_agon';
-$plugin->release = '0.1.0';
-$plugin->version = 2026060800;
-$plugin->requires = 2024100708;
-$plugin->maturity = MATURITY_ALPHA;
+/**
+ * The course_module_instance_list_viewed event class.
+ */
+class course_module_instance_list_viewed extends \core\event\course_module_instance_list_viewed {
+}

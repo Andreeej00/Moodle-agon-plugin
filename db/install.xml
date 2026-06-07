@@ -13,6 +13,12 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Timestamp of when the instance was last modified."/>
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Activity description."/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The format of the intro field."/>
+        <FIELD NAME="gamecrossword" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether the crossword game is enabled."/>
+        <FIELD NAME="gamequestion" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether the weekly question game is enabled."/>
+        <FIELD NAME="gamecoding" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Whether the coding game is enabled."/>
+        <FIELD NAME="contentcrossword" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Crossword JSON content."/>
+        <FIELD NAME="contentquestion" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Question JSON content."/>
+        <FIELD NAME="contentcoding" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Coding JSON content."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

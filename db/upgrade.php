@@ -38,10 +38,23 @@ function xmldb_agon_upgrade($oldversion) {
 
     $dbman = $DB->get_manager();
 
-    // For further information please read {@link https://docs.moodle.org/dev/Upgrade_API}.
-    //
-    // You will also have to create the db/install.xml file by using the XMLDB Editor.
-    // Documentation for the XMLDB Editor can be found at {@link https://docs.moodle.org/dev/XMLDB_editor}.
+    if ($oldversion < 2026060800) {
+        $table = new xmldb_table('agon');
+        $fields = [
+            new xmldb_field('gamecrossword', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '1', 'introformat'),
+            new xmldb_field('gamequestion', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '1', 'gamecrossword'),
+            new xmldb_field('gamecoding', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '1', 'gamequestion'),
+            new xmldb_field('contentcrossword', XMLDB_TYPE_TEXT, null, null, null, null, null, 'gamecoding'),
+            new xmldb_field('contentquestion', XMLDB_TYPE_TEXT, null, null, null, null, null, 'contentcrossword'),
+            new xmldb_field('contentcoding', XMLDB_TYPE_TEXT, null, null, null, null, null, 'contentquestion'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+        upgrade_mod_savepoint(true, 2026060800, 'agon');
+    }
 
     return true;
 }

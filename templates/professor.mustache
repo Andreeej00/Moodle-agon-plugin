@@ -1,0 +1,25 @@
+{{!
+    Professor monitor view for mod_agon (frontend skeleton).
+    Professors do not play — they review attempts and the leaderboard.
+    Tables are filled by js/professor.js from window.AGON (mock data for now).
+}}
+<div class="agon">
+  <div class="adm-embed">
+    <h3>{{name}} &mdash; overview</h3>
+    <p class="muted">Student attempts and the course leaderboard. Game content (crossword / questions / coding JSON) is configured in the activity settings &mdash; coming with the backend.</p>
+    <div class="ag-card">
+      <div class="kicker">Student attempts</div>
+      <table class="lbt">
+        <thead><tr><th>Student</th><th>Crossword</th><th>Question</th><th>Coding</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody id="att-rows"></tbody>
+      </table>
+    </div>
+    <div class="ag-card">
+      <div class="kicker">Course leaderboard</div>
+      <table class="lbt">
+        <thead><tr><th>#</th><th>Student</th><th>Points</th></tr></thead>
+        <tbody id="lb-rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
