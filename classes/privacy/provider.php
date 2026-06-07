@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - https://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,39 +12,25 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
+
+namespace mod_agon\privacy;
 
 /**
- * Defines {@see \tool_pluginskel\privacy\provider} class.
+ * Privacy API implementation for the Agon plugin.
  *
- * @package     tool_pluginskel
+ * @package     mod_agon
  * @category    privacy
- * @copyright   2018 David Mudrák <david@moodle.com>
- * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
-namespace tool_pluginskel\privacy;
-
-/**
- * Privacy API implementation for the Moodle plugin skeleton generator plugin.
- *
- * @copyright  2018 David Mudrák <david@moodle.com>
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @copyright   2026 Andrej Micic
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class provider implements \core_privacy\local\metadata\null_provider {
-
-    use \core_privacy\local\legacy_polyfill;
-
-    // phpcs:disable PSR2.Methods.MethodDeclaration.Underscore
-
     /**
      * Returns stringid of a text explaining that this plugin stores no personal data.
      *
      * @return string
      */
-    public static function _get_reason() {
+    public static function get_reason(): string {
         return 'privacy:metadata';
     }
-
-    // phpcs:enable
 }

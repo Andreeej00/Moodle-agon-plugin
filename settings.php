@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - https://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,36 +12,24 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Link to plugin generator.
+ * Plugin administration pages are defined here.
  *
- * @package    tool_pluginskel
- * @copyright  2016 Alexandru Elisei
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     mod_agon
+ * @category    admin
+ * @copyright   2026 Andrej Micic
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
+defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    $settings = new admin_settingpage('tool_pluginskel_settings', new lang_string('pluginname', 'tool_pluginskel'));
+    $settings = new admin_settingpage('mod_agon_settings', new lang_string('pluginname', 'mod_agon'));
 
-    $settings->add(new admin_setting_configtext(
-        'tool_pluginskel/copyright',
-        new lang_string('copyright', 'tool_pluginskel'),
-        new lang_string('copyright_desc', 'tool_pluginskel'),
-        date('Y').' Your Name <you@example.com>',
-        PARAM_RAW
-    ));
-
-    $ADMIN->add('tools', $settings);
-
-    $ADMIN->add(
-        'development',
-        new admin_externalpage(
-            'tool_pluginskel', get_string('generateskel', 'tool_pluginskel'),
-            new moodle_url('/admin/tool/pluginskel/index.php')
-        )
-    );
+    // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
+    if ($ADMIN->fulltree) {
+        // TO-DO: Define actual plugin settings page and add it to the tree - {@link https://docs.moodle.org/dev/Admin_settings}.
+    }
 }

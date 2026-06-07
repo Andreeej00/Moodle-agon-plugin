@@ -15,17 +15,18 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Code to be executed after the plugin's database scheme has been installed is defined here.
  *
  * @package     mod_agon
+ * @category    upgrade
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Custom code to be run on installing the plugin.
+ */
+function xmldb_agon_install() {
 
-$plugin->component = 'mod_agon';
-$plugin->release = '0.1.0';
-$plugin->version = 2026060700;
-$plugin->requires = 2024100708;
-$plugin->maturity = MATURITY_ALPHA;
+    return true;
+}

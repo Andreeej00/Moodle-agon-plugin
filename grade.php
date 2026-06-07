@@ -15,17 +15,30 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Redirect the user to the appropiate submission related page.
  *
  * @package     mod_agon
+ * @category    grade
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require(__DIR__ . '/../../config.php');
 
-$plugin->component = 'mod_agon';
-$plugin->release = '0.1.0';
-$plugin->version = 2026060700;
-$plugin->requires = 2024100708;
-$plugin->maturity = MATURITY_ALPHA;
+// Course module ID.
+$id = required_param('id', PARAM_INT);
+
+$cm = get_coursemodule_from_id('agon', $id, 0, false, MUST_EXIST);
+$course = $DB->get_record('course', ['id' => $cm->course], '*', MUST_EXIST);
+$moduleinstance = $DB->get_record('agon', ['id' => $cm->instance], '*', MUST_EXIST);
+
+require_login($course, true, $cm);
+
+// Item number may be != 0 for activities that allow more than one grade per user.
+$itemnumber = optional_param('itemnumber', 0, PARAM_INT);
+
+// Graded user ID (optional).
+$userid = optional_param('userid', 0, PARAM_INT);
+
+// In the simplest case just redirect to the view page.
+redirect('view.php?id=' . $id);

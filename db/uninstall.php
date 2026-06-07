@@ -15,17 +15,18 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Code that is executed before the tables and data are dropped during the plugin uninstallation.
  *
  * @package     mod_agon
+ * @category    upgrade
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+/**
+ * Custom uninstallation procedure.
+ */
+function xmldb_agon_uninstall() {
 
-$plugin->component = 'mod_agon';
-$plugin->release = '0.1.0';
-$plugin->version = 2026060700;
-$plugin->requires = 2024100708;
-$plugin->maturity = MATURITY_ALPHA;
+    return true;
+}

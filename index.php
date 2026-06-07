@@ -1,5 +1,5 @@
 <?php
-// This file is part of Moodle - http://moodle.org/
+// This file is part of Moodle - https://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -12,211 +12,83 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+// along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Web interface for generating plugins.
+ * Display information about all the mod_agon modules in the requested course.
  *
- * @package    tool_pluginskel
- * @copyright  2016 Alexandru Elisei
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     mod_agon
+ * @copyright   2026 Andrej Micic
+ * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-use Monolog\Logger;
-use Monolog\Handler\BrowserConsoleHandler;
+require(__DIR__ . '/../../config.php');
 
-// @codingStandardsIgnoreStart
-if (!empty($_REQUEST['buttondownloadskel'])) {
-    // We are going to download a ZIP file via this script. Disable debugging
-    // to prevent corruption of the file. This must be done before booting up
-    // the Moodle core so we need to use the low-level access to the
-    // superlobal $_REQUEST here and make the code checker to ignore this.
-    define('NO_DEBUG_DISPLAY', true);
+require_once(__DIR__ . '/lib.php');
+
+$id = required_param('id', PARAM_INT);
+
+$course = $DB->get_record('course', ['id' => $id], '*', MUST_EXIST);
+require_course_login($course);
+
+$coursecontext = context_course::instance($course->id);
+
+$event = \mod_agon\event\course_module_instance_list_viewed::create([
+    'context' => $modulecontext,
+]);
+$event->add_record_snapshot('course', $course);
+$event->trigger();
+
+$PAGE->set_url('/mod/agon/index.php', ['id' => $id]);
+$PAGE->set_title(format_string($course->fullname));
+$PAGE->set_heading(format_string($course->fullname));
+$PAGE->set_context($coursecontext);
+
+echo $OUTPUT->header();
+
+$modulenameplural = get_string('modulenameplural', 'mod_agon');
+echo $OUTPUT->heading($modulenameplural);
+
+$agons = get_all_instances_in_course('agon', $course);
+
+if (empty($agons)) {
+    notice(get_string('no$agoninstances', 'mod_agon'), new moodle_url('/course/view.php', ['id' => $course->id]));
 }
-// @codingStandardsIgnoreEnd
 
-require(__DIR__ . '/../../../config.php');
-require_once($CFG->libdir . '/adminlib.php');
-require_once($CFG->libdir . '/moodlelib.php');
-require_once(__DIR__ . '/vendor/autoload.php');
+$table = new html_table();
+$table->attributes['class'] = 'generaltable mod_index';
 
-admin_externalpage_setup('tool_pluginskel');
+if ($course->format == 'weeks') {
+    $table->head  = [get_string('week'), get_string('name')];
+    $table->align = ['center', 'left'];
+} else if ($course->format == 'topics') {
+    $table->head  = [get_string('topic'), get_string('name')];
+    $table->align = ['center', 'left', 'left', 'left'];
+} else {
+    $table->head  = [get_string('name')];
+    $table->align = ['left', 'left', 'left'];
+}
 
-$url = new moodle_url('/admin/tool/pluginskel/index.php');
-$PAGE->set_url($url);
-$PAGE->set_title(get_string('generateskel', 'tool_pluginskel'));
-$PAGE->set_heading(get_string('generateskel', 'tool_pluginskel'));
-
-$step = optional_param('step', '0', PARAM_INT);
-$component = optional_param('component1', '', PARAM_TEXT);
-
-$returnurl = new moodle_url('/admin/tool/pluginskel/index.php');
-
-if ($step == 0) {
-
-    $mform0 = new tool_pluginskel_step0_form();
-    $formdata = $mform0->get_data();
-    $PAGE->requires->js_call_amd('tool_pluginskel/showtypeprefix', 'init');
-
-    if (!empty($formdata)) {
-
-        $data = [];
-        $recipe = [];
-        $componenttype = '';
-
-        if (!empty($formdata->proceedmanually)) {
-
-            if (empty($formdata->componentname)) {
-                throw new moodle_exception('emptypluginname', 'tool_pluginskel', $returnurl);
-            }
-
-            $recipe['component'] = $formdata->componenttype.'_'.$formdata->componentname;
-            $componenttype = $formdata->componenttype;
-
-        } else {
-
-            if (!empty($formdata->proceedrecipefile)) {
-                $recipestring = $mform0->get_file_content('recipefile');
-            } else if (!empty($formdata->proceedrecipe)) {
-                $recipestring = $formdata->recipe;
-            }
-
-            if (empty($recipestring)) {
-                throw new moodle_exception('emptyrecipecontent', 'tool_pluginskel', $returnurl);
-            }
-
-            $recipe = tool_pluginskel\local\util\yaml::decode_string($recipestring);
-            list($componenttype, $componentname) = core_component::normalize_component($recipe['component']);
-
-            $generalvars = tool_pluginskel\local\util\manager::get_general_variables();
-            $componentvars = tool_pluginskel\local\util\manager::get_component_variables($recipe['component']);
-            $featuresvars = tool_pluginskel\local\util\manager::get_features_variables();
-
-            $rootvars = array_merge($generalvars, $featuresvars);
-            $rootvarscount = tool_pluginskel\local\util\index_helper::get_array_variable_count_from_recipe($rootvars, $recipe);
-
-            $componentfeatures = $componenttype.'_features';
-            $componentvarscount = [];
-            if (!empty($recipe[$componentfeatures])) {
-                $componentvarscount = tool_pluginskel\local\util\index_helper::get_array_variable_count_from_recipe(
-                    $componentvars,
-                    $recipe[$componentfeatures],
-                    $componentfeatures
-                );
-            }
-
-            $data = array_merge($rootvarscount, $componentvarscount);
-        }
-
-        $data['recipe'] = $recipe;
-
-        $mform1 = new tool_pluginskel_step1_form(null, $data);
-        $PAGE->requires->js_call_amd('tool_pluginskel/addmore', 'addMore');
-
-        echo $OUTPUT->header();
-        $mform1->display();
-        echo $OUTPUT->footer();
-
+foreach ($agons as $agon) {
+    if (!$agon->visible) {
+        $link = html_writer::link(
+            new moodle_url('/mod/agon/view.php', ['id' => $agon->coursemodule]),
+            format_string($agon->name, true),
+            ['class' => 'dimmed']
+        );
     } else {
-
-        echo $OUTPUT->header();
-        $mform0->display();
-        echo $OUTPUT->footer();
-
+        $link = html_writer::link(
+            new moodle_url('/mod/agon/view.php', ['id' => $agon->coursemodule]),
+            format_string($agon->name, true)
+        );
     }
 
-} else if ($step == 1) {
-
-    // Reconstructing the form elements.
-    $generalvars = tool_pluginskel\local\util\manager::get_general_variables();
-    $componentvars = tool_pluginskel\local\util\manager::get_component_variables($component);
-    $featuresvars = tool_pluginskel\local\util\manager::get_features_variables();
-
-    $rootvars = array_merge($generalvars, $featuresvars);
-    $rootvarscount = tool_pluginskel\local\util\index_helper::get_array_variable_count_from_form($rootvars);
-
-    list($componenttype, $componentname) = core_component::normalize_component($component);
-    $componentfeatures = $componenttype.'_features';
-    $componentvarscount = tool_pluginskel\local\util\index_helper::get_array_variable_count_from_form($componentvars,
-                                                                                                      $componentfeatures);
-
-    $data = array_merge($rootvarscount, $componentvarscount);
-    $data['recipe'] = ['component' => $component];
-
-    $mform1 = new tool_pluginskel_step1_form(null, $data);
-    $formdata = (array) $mform1->get_data();
-
-    $recipe = $mform1->get_recipe();
-
-    if (!empty($formdata['buttondownloadskel'])) {
-
-        tool_pluginskel\local\util\index_helper::download_plugin_skeleton($recipe);
-
-    } else if (!empty($formdata['buttondownloadrecipe'])) {
-
-        $recipestring = tool_pluginskel\local\util\yaml::encode($recipe);
-        tool_pluginskel\local\util\index_helper::download_recipe($recipestring);
-
-    } else if (!empty($formdata['buttonshowrecipe'])) {
-
-        $data = ['recipe' => $recipe];
-        $mform2 = new tool_pluginskel_step2_form(null, $data);
-
-        echo $OUTPUT->header();
-        $mform2->display();
-        echo $OUTPUT->footer();
-
-    }
-
-} else if ($step == 2) {
-
-    // Reconstruct the form.
-    $recipestub = ['component' => $component];
-    $data = ['recipe' => $recipestub];
-    $mform2 = new tool_pluginskel_step2_form(null, $data);
-    $formdata = (array) $mform2->get_data();
-
-    $recipestring = $formdata['recipe'];
-
-    if (!empty($formdata['buttondownloadrecipe'])) {
-
-        tool_pluginskel\local\util\index_helper::download_recipe($recipestring);
-
-    } else if (!empty($formdata['buttondownloadskel'])) {
-
-        $recipe = tool_pluginskel\local\util\yaml::decode_string($recipestring);
-        tool_pluginskel\local\util\index_helper::download_plugin_skeleton($recipe);
-
-    } else if (!empty($formdata['buttonback'])) {
-
-        $recipe = tool_pluginskel\local\util\yaml::decode_string($recipestring);
-
-        $generalvars = tool_pluginskel\local\util\manager::get_general_variables();
-        $componentvars = tool_pluginskel\local\util\manager::get_component_variables($recipe['component']);
-        $featuresvars = tool_pluginskel\local\util\manager::get_features_variables();
-
-        $rootvars = array_merge($generalvars, $featuresvars);
-        $rootvarscount = tool_pluginskel\local\util\index_helper::get_array_variable_count_from_recipe($rootvars, $recipe);
-
-        list($componenttype, $componentname) = core_component::normalize_component($component);
-        $componentfeatures = $componenttype.'_features';
-        $componentvarscount = [];
-        if (!empty($recipe[$componentfeatures])) {
-            $componentvarscount = tool_pluginskel\local\util\index_helper::get_array_variable_count_from_recipe(
-                $componentvars,
-                $recipe[$componentfeatures],
-                $componentfeatures
-            );
-        }
-
-        $data = array_merge($rootvarscount, $componentvarscount);
-        $data['recipe'] = $recipe;
-
-        $mform1 = new tool_pluginskel_step1_form(null, $data);
-        $PAGE->requires->js_call_amd('tool_pluginskel/addmore', 'addMore');
-
-        echo $OUTPUT->header();
-        $mform1->display();
-        echo $OUTPUT->footer();
+    if ($course->format == 'weeks' || $course->format == 'topics') {
+        $table->data[] = [$agon->section, $link];
+    } else {
+        $table->data[] = [$link];
     }
 }
+
+echo html_writer::table($table);
+echo $OUTPUT->footer();

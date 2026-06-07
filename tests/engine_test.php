@@ -14,18 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
+namespace mod_agon;
+
 /**
- * Plugin version and other meta-data are defined here.
+ * The engine test class.
  *
  * @package     mod_agon
+ * @category    test
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+final class engine_test extends \advanced_testcase {
+    // Write the tests here as public funcions.
+    // Please refer to {@link https://docs.moodle.org/dev/PHPUnit} for more details on PHPUnit tests in Moodle.
 
-defined('MOODLE_INTERNAL') || die();
-
-$plugin->component = 'mod_agon';
-$plugin->release = '0.1.0';
-$plugin->version = 2026060700;
-$plugin->requires = 2024100708;
-$plugin->maturity = MATURITY_ALPHA;
+    /**
+     * Dummy test.
+     *
+     * This is to be replaced by some actually useful test.
+     *
+     * @coversNothing
+     */
+    public function test_dummy(): void {
+        $this->assertTrue(false);
+    }
+}
