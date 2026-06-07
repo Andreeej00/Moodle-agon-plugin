@@ -114,7 +114,8 @@ $agondata = [
     ],
 ];
 
-$PAGE->requires->js(new moodle_url('/mod/agon/js/' . $view . '.js'), true);
+// Load in the footer (false), so it runs after the window.AGON data is printed below.
+$PAGE->requires->js(new moodle_url('/mod/agon/js/' . $view . '.js', ['v' => get_config('mod_agon', 'version')]), false);
 
 echo $OUTPUT->header();
 echo $OUTPUT->render_from_template('mod_agon/' . $view, [
