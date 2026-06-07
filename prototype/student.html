@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agon — Student</title>
+  <link rel="stylesheet" href="css/agon.css">
+</head>
+<body>
+<div class="app">
+  <header class="app__header">
+    <div>
+      <div class="app__title">Agon</div>
+      <div class="app__sub" id="a-sub">subject</div>
+    </div>
+    <div class="head-side">
+      <span class="pill" id="a-week">Week 5</span>
+      <label class="switch" title="Show explanations"><input type="checkbox" id="explain-toggle"><span class="track"></span><span>Explain</span></label>
+      <button class="hint-btn" id="hint" title="Hint (one per attempt)">💡</button>
+    </div>
+  </header>
+
+  <main class="app__content" id="app-content">
+    <!-- START -->
+    <section class="stage is-active" id="stage-start">
+      <div class="card">
+        <div class="kicker">Today's challenge</div>
+        <h2 class="stage__title">Tokenization</h2>
+        <p class="lead">Three mini-games: crossword, weekly question, and coding. Earn points for the course leaderboard.</p>
+        <div class="rules">
+          <b>Scoring</b><br>
+          Crossword: 1st–3rd = <b>1.0</b>, 4th–10th = <b>0.75</b>, others = <b>0.5</b><br>
+          Question: correct = <b>1.0</b> · Coding: 2 × <b>0.5</b> (partial)<br>
+          1 hint · 1 attempt
+        </div>
+      </div>
+    </section>
+
+    <!-- CROSSWORD -->
+    <section class="stage" id="stage-crossword">
+      <div class="kicker">Game 1 · Recall</div>
+      <h2 class="stage__title">Crossword</h2>
+      <p class="lead">Fill in the words from the clues. No time limit.</p>
+      <div class="card"><div class="cw" id="cw"></div></div>
+      <div class="card clues" id="clues"></div>
+    </section>
+
+    <!-- QUESTION -->
+    <section class="stage" id="stage-question">
+      <div class="kicker">Game 2 · Understand</div>
+      <h2 class="stage__title">Weekly question</h2>
+      <div class="timer">⏱ 0:30</div>
+      <div class="card" id="q-host"></div>
+    </section>
+
+    <!-- REVEAL -->
+    <section class="stage" id="stage-reveal">
+      <h2 class="stage__title">Correct answer</h2>
+      <div class="explain-row">
+        <div class="card">
+          <div class="reveal__badge">✅</div>
+          <div class="peek-wrap"><div class="answer peek" id="reveal-answer">answer</div></div>
+          <div class="peek-hint">👆 hover to reveal</div>
+        </div>
+        <div class="card explain"><div class="kicker">Explanation</div><div id="q-explain"></div></div>
+      </div>
+    </section>
+
+    <!-- CODING -->
+    <section class="stage" id="stage-coding">
+      <div class="kicker">Game 3 · Apply</div>
+      <h2 class="stage__title">Coding</h2>
+      <div class="timer">⏱ 1:30</div>
+      <p class="lead">Drag an option into a blank, or click an option then a blank. Click a filled blank to clear it. Two sequences, 0.5 each (partial per blank).</p>
+      <div id="coding"></div>
+    </section>
+
+    <!-- REVIEW -->
+    <section class="stage" id="stage-review">
+      <h2 class="stage__title">Correct sequence</h2>
+      <div class="explain-row">
+        <div class="card">
+          <div class="code peek">text = "Hello World"
+tokens = text.<b>split</b>()
+tokens = [t.<b>lower</b>() for t in tokens]
+print(<b>len</b>(tokens))</div>
+          <div class="peek-hint">👆 hover to reveal</div>
+        </div>
+        <div class="card explain"><div class="kicker">Explanation</div><div id="review-explain"></div></div>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="stage" id="stage-results">
+      <h2 class="stage__title">Today's score</h2>
+      <div class="card">
+        <div class="score-big">2.25</div>
+        <div class="score-row"><span>Crossword</span><b>1.00</b></div>
+        <div class="score-row"><span>Question</span><b>1.00</b></div>
+        <div class="score-row"><span>Coding</span><b>0.25</b></div>
+      </div>
+      <div class="card">
+        <div class="kicker">Course leaderboard</div>
+        <ul class="lb" id="lb"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app__footer">
+    <nav class="stepper">
+      <div class="step"><span class="step__dot">▦</span>Crossword</div>
+      <div class="step"><span class="step__dot">?</span>Question</div>
+      <div class="step"><span class="step__dot">{ }</span>Code</div>
+      <div class="step"><span class="step__dot">★</span>Result</div>
+    </nav>
+    <button class="btn btn--primary" id="cta">Start</button>
+  </footer>
+</div>
+<script src="js/data.js"></script>
+<script src="js/student.js"></script>
+</body>
+</html>

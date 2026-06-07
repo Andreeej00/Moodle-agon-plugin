@@ -1,72 +1,65 @@
 # 🎮 Agon — Gamified Learning for Moodle
 
-> **`mod_agon`** · A Moodle activity that turns course terms into a short, competitive set of minigames — so students prep for quizzes by *playing*.
+> **`mod_agon`** · A Moodle activity that turns a week's course topic into a short, competitive run of mini-games — so students prep for quizzes by *playing*.
 
-> ⚠️ **Status: early development (Phase 0 — project setup).** This repository currently holds the project's design and documentation; the plugin itself is being built. See the [roadmap](#️-roadmap).
+> ⚠️ **Status: Phase 1 — UI skeleton.** The plugin installs and runs in Moodle (Phase 0 done); a clickable mock of every screen lives in [`prototype/`](prototype/index.html). Game logic and scoring are next. See the [roadmap](#️-roadmap).
 
 <!-- ![Agon gameplay](docs/img/hero.gif) -->
 
 ## ✨ What is Agon?
 
-Agon (Greek for *contest*) is a generic, reusable Moodle activity module. A teacher drops it into any course, adds a set of terms, and students get a fun, competitive way to revise — with **leaderboards** visible to students, teachers, and assistants, and **extra grade points** for top performers.
-
-It's designed to work for **any subject**, not just one course.
+Agon (Greek for *contest*) is a generic, reusable Moodle activity module. A teacher drops it into any course, configures a week's content, and students get a fun, competitive way to revise — with one **course-wide leaderboard** and **extra grade points** for top performers. Designed to work for **any subject**.
 
 ## 🪜 The learning ladder
 
-Instead of one game, Agon walks a student up a ladder on the *same* concept — each step asks them to do **more** with it (mirroring the lower rungs of Bloom's taxonomy: *recall → understand → apply*):
+A student plays a linear run on the week's topic — each game asks them to do **more** with it (Bloom's *recall → understand → apply*):
 
-| Step | Game | What it trains |
-| --- | --- | --- |
-| 1 | **Crossword** | Recall the term |
-| 2 | **Reveal & Answer** | Understand it (timed; one box open at a time) |
-| 3 | **Code Blocks** | Apply it (timed; fill the gaps from one-at-a-time menus) |
+| Step | Game | Trains | Scoring |
+| --- | --- | --- | --- |
+| 1 | **Crossword** | Recall | finish-rank: 1st–3rd = **1.0**, 4th–10th = **0.75**, rest = **0.5** · no timer |
+| 2 | **Weekly Question** | Understand | timed · correct = **1.0**, wrong = **0** |
+| 3 | **Coding** | Apply | timed · 2 sequences × **0.5**, partial credit per correct placement |
 
-One concept, climbed — not three disconnected games.
+**One hint** and **one attempt**; all points **sum into a single course-wide leaderboard**. On finishing, the student sees today's score + a leaderboard preview.
+
+## 👤 Two views
+
+- **Student** — plays the run (Start → Crossword → Question → Reveal → Coding → Review → Score), with a bottom-nav stepper.
+- **Professor / assistant** — **doesn't play**: **configures** the activity (picks games + pastes each game's **JSON** content) and **monitors** (student attempts + leaderboard).
 
 ## 🛡️ Designed to be fair
 
-Because real grade points are on the line, Agon aims to make **honest play faster than cheating** (not "AI-proof" — that's impossible — just not worth the effort). Four server-enforced levers:
-
-- **Tight timers** — no time to round-trip an answer to an AI.
-- **Per-attempt randomization** — a shared answer goes stale.
-- **Progressive disclosure** — only one piece is revealed at a time, fetched on demand, so the full answer never sits on the page.
-- **Hands-on interaction** — dragging / selecting / spatial input that doesn't copy-paste.
+Real grade points are on the line, so Agon makes **honest play faster than cheating** (not "AI-proof"): **tight timers** (question + coding), **per-attempt randomization**, and **click/drag interaction** that doesn't copy-paste. The crossword is the low-stakes, shareable warm-up.
 
 ## 🧩 Built to be generic & extensible
 
-Under the hood, Agon is **one engine + pluggable games**: a shared core (content, scoring, timing, leaderboard, gradebook) with each game as a swappable "renderer" on top. Adding a new game means writing a new renderer — not a new plugin. Teachers choose which games are active per activity.
+Under the hood: **one engine + pluggable games** — a shared core (content, scoring, timing, leaderboard, gradebook) with each game a swappable "renderer." Teachers choose which games an activity includes.
 
-→ Full design: **[plan.md](plan.md)** · Technical architecture: **[docs/architecture.md](docs/architecture.md)**
+→ Full design: **[plan.md](plan.md)** · Architecture: **[docs/architecture.md](docs/architecture.md)**
 
 ## 🗺️ Roadmap
 
-- **Phase 0 — Setup:** dev environment (moodle-docker), scaffold `mod_agon`, design docs. ← *here*
-- **Phase 1 — MVP:** teacher content authoring → one game end-to-end → server-side scoring → gradebook → basic leaderboard.
-- **Phase 2 — Competitive layer:** per-course leaderboard, capabilities, rewards, anti-cheat levers.
-- **Phase 3 — Full experience:** all three games, daily challenge + streaks, glossary / question-bank import, polish (animations, responsive, accessibility).
+- **Phase 0 — Setup:** ✅ moodle-docker, `mod_agon` scaffolded, installed, live.
+- **Phase 1 — UI + engine:** ✅ UI skeleton (`prototype/`). Next: data model, engine + game contract, JSON content, server-side scoring, gradebook, course leaderboard. ← *here*
+- **Phase 2 — Competitive layer:** rewards, capabilities, anti-cheat levers.
+- **Phase 3 — Full experience:** daily challenge + streaks, glossary / question-bank import, polish.
 
-## 🚀 Getting started (development)
+## 🚀 Getting started
 
-> The plugin is not yet installable — this is the planned workflow.
+**Preview the UI** (no install): open [`prototype/index.html`](prototype/index.html) in a browser — try the **Student** run and the **Professor** view.
 
-```sh
-# Run Moodle locally with moodle-docker, then place this plugin at:
-#   <moodle>/mod/agon
-# and complete the install from the Moodle admin "Notifications" page.
-```
+**Run in Moodle** (dev): with [moodle-docker](https://github.com/moodlehq/moodle-docker), place this folder at `<moodle>/mod/agon` and install from the admin *Notifications* page. To install on another Moodle, zip the plugin with a top folder named `agon` and upload via *Site administration → Plugins → Install plugins* (built on Moodle 4.5 LTS).
 
 ## 📁 Repository layout
 
-- `plan.md` — project plan & design decisions
-- `docs/` — architecture notes and screenshots
-- *(plugin source will live at the repository root: `version.php`, `lib.php`, `classes/`, `amd/`, `templates/`, `db/`, `lang/`, `tests/` …)*
-
-> Note: this repo currently also contains [`tool_pluginskel`](https://moodle.org/plugins/tool_pluginskel) — the Moodle skeleton **generator** used to scaffold the plugin. It's kept here for reference and will be trimmed as the real plugin takes shape.
+This repo **is** the `mod_agon` plugin (installs to `mod/agon`):
+- plugin source at the root — `version.php`, `lib.php`, `mod_form.php`, `view.php`, `db/`, `classes/`, `lang/`, `pix/`, `tests/`
+- `prototype/` — standalone clickable UI mock (design only; not shipped to Moodle)
+- `plan.md`, `docs/` — plan & architecture notes
 
 ## 📜 License
 
-GNU GPL v3 or later — like Moodle itself. See [LICENSE](LICENSE).
+GNU GPL v3 or later — like Moodle itself. See [LICENSE.md](LICENSE.md).
 
 ## 🎓 Credits
 

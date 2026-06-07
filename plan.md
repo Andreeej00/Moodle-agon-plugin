@@ -1,55 +1,53 @@
 # Moodle "agon" — Project Plan
 
-*A competitive, gamified learning plugin for Moodle. Living document — last updated 2026-06-04.*
+*A competitive, gamified learning plugin for Moodle. Living document — last updated 2026-06-07.*
 
 ## 1. Vision
-A Moodle activity that helps students prep for quizzes by turning course terms into a short, fun, competitive set of minigames. Generic across courses (any subject). Leaderboards are visible to students, teachers, and assistants, and top performers are rewarded with extra grade points. The experience should feel modern, smooth, and a little addictive.
+A Moodle activity that helps students prep for quizzes by turning a week's course topic into a short, fun, competitive run of mini-games. Generic across courses. One course-wide leaderboard visible to everyone; top performers earn extra grade points. Modern, smooth, a little addictive.
 
 ## 2. Plugin shape
-- **Type:** activity module `mod_agon` (lives in `/mod/agon/`). Chosen because it's the only plugin type that cleanly gives gradebook integration, a capability system, backup/restore, and per-attempt tracking.
-- **Architecture:** one shared **engine** + several pluggable **game renderers**.
-  - *Engine* owns: content, attempts, scoring, timing, randomization, leaderboard, gradebook writes. (Like an MVVM ViewModel — shared state.)
-  - *Renderers* are the individual games drawing that same state. (Like swappable views/Composables.)
-  - A teacher chooses which games are active per activity → some games are universal, some are domain-specific (e.g. the coding game).
+- **Type:** activity module `mod_agon` (`/mod/agon/`) — gives gradebook integration, capabilities, backup/restore, per-attempt tracking.
+- **Architecture:** one shared **engine** (content, attempts, scoring, timing, leaderboard, gradebook) + pluggable **game renderers** on top. Like an MVVM ViewModel with swappable views. Adding a game = adding a renderer, not a new plugin.
 
-## 3. Content model (kept generic)
-- **MVP:** teacher types **term + clue/definition + answer** sets directly in the activity. Subject-agnostic.
-- **Later:** import from Moodle **Glossary** (concept + definition is already a perfect clue) and/or the **Question Bank**.
+## 3. Content model — JSON per game, entered at setup
+The professor chooses which games the activity includes, then pastes each chosen game's content as **JSON** (per week/topic). Schemas:
+- **Crossword:** `{ subject, subject_code, week, topic, language, difficulty, author, words:[{ number, word, clue, direction, row, col }] }`
+- **Questions (~5/week):** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }`
+- **Coding (2 sequences):** `{ subject_code, week, sequences:[{ title, code (with ____), blanks:[…], options:[…] }] }`
 
-## 4. Game lineup — a learning ladder
-Each game asks the student to do *more* with the same term: **recall → understand → apply** (Bloom's bottom three rungs). One concept, climbed — not three disconnected games.
+*(Later: import from Glossary / Question Bank.)*
 
-1. **Crossword — "recall"** *(professor-required).* Same grid for everyone. **Accepted as shareable** — a shared crossword can't be protected from posting, so it is the **low-stakes warm-up** and carries **light leaderboard weight**.
-2. **Reveal & Answer — "understand"** *(timed).* A grid of boxes, each hiding a question/answer. **Only one box is open at a time — opening one closes the last.** Race the clock to open and answer them all. Each answer is **fetched from the server when its box opens**, so the full set never sits on the page at once.
-3. **Code Blocks — "apply"** *(timed, language-agnostic).* A snippet split into blocks, each with a **dropdown of choices**; **only one select open at a time**, with options **fetched from the server on open**. Pick the right piece for each slot. Generalizes to non-coding **"fill the blanks in context"** for any subject.
+## 4. Game lineup — a learning ladder (recall → understand → apply)
+A linear run on the week's topic; every game's points sum into one course leaderboard.
 
-*(Optional future game in the same spirit: a "flashlight" reveal where only a small region of the board is visible at a time.)*
+1. **Crossword — "recall."** Fill the grid from clues. **No timer.** Scored by finish-rank: **first 3 = 1.0, 4th–10th = 0.75, everyone else = 0.5.** (Shared grid — accepted as shareable.)
+2. **Weekly Question — "understand."** A **timed** multiple-choice question → confirm → the correct answer is revealed. **Correct = 1.0, wrong = 0.**
+3. **Coding — "apply."** **Timed.** **Two code sequences** (each ≥3 blanks, ≥5 options); click/drag an option into each blank. Each sequence worth **0.5**, **partial credit per correct placement** (4/5 → 0.4).
 
-## 5. Competitive layer
-- **Leaderboards:** per-activity → per-course (site-wide later). Students see the ranking; teachers/assistants see richer per-student detail (gated by capabilities).
-- **Rewards:** top performers get extra points written to the **gradebook**.
-- **Scoring weight:** the AI-resistant games (2 & 3) count for more than the shareable crossword.
-- **Engagement (later):** a **Daily Run** + streaks — one term a day, climb the ladder, streak bonus.
-- **Privacy:** the leaderboard shows names → expose via a setting and the Moodle Privacy API.
+Across the attempt: **one hint**, **one attempt** (no unlimited practice). Timers on the question and coding only.
+
+## 5. Roles, flow & competitive layer
+- **Student** plays the linear run, with an inner bottom-nav stepper:
+  Start → Crossword → *(Next)* → Question → *(Confirm)* → Reveal answer → Coding → Review correct sequence → **Today's score + leaderboard preview**.
+- **Professor / assistant** **does not play** — they **configure** (pick games + paste JSON) and **monitor** (student attempts table + the leaderboard).
+- **One course-wide leaderboard**; points **sum cumulatively** across games and weeks.
+- **Rewards:** top performers get extra grade points (gradebook wiring + reward rule in a later phase).
+- **Privacy:** leaderboard shows names → setting + Moodle Privacy API.
 
 ## 6. Anti-cheat / AI-resistance
-The goal is **not** "AI-proof" (multimodal AI can read a screenshot) but **making honest play faster than cheating**. All levers are **server-enforced**:
-1. **Tight timers** — no time to round-trip an AI mid-round.
-2. **Per-attempt randomization / shuffling** — a shared or screenshotted answer goes stale. *(Not applicable to the daily shared puzzle — there, rely on timer + first-attempt-counts.)*
-3. **Progressive disclosure** — never show the whole puzzle at once; reveal one piece at a time, **fetched from the server on open** so the full answer set never exists in the page DOM. This defeats both screenshot *and* HTML-inspection cheating. (Note: native `<select>` options live in the DOM even when closed — so options/answers must be **lazy-loaded on open**, not pre-rendered.) Implemented as an engine-level mode any game can enable.
-4. **Interaction that doesn't copy-paste** — drag / select / spatial.
+Goal: make **honest play faster than cheating** (not "AI-proof"). Server-enforced levers: **tight timers** (question + coding), **per-attempt randomization**, and **interaction that doesn't copy-paste** (drag/click placement). The crossword is deliberately the low-stakes, shareable warm-up.
 
 ## 7. Testing & dev environment
-- **moodle-docker** to run Moodle + a database in containers; mount `mod_agon` into the Moodle tree.
-- **Mock data:** `admin/tool/generator` for test courses, plus a few dummy student accounts to exercise the leaderboard.
-- **Quality:** Moodle coding style + `moodle-plugin-ci`; PHPUnit/Behat tests (the skeleton generator scaffolds these).
+- **moodle-docker** runs Moodle 4.5 LTS; the plugin lives at `mod/agon`. Mock data via `admin/tool/generator`.
+- **Quality:** Moodle coding style + `moodle-plugin-ci`; PHPUnit on the engine; Behat for flows.
 
 ## 8. Phased roadmap
-- **Phase 0 — Environment.** moodle-docker up; scaffold `mod_agon` with `tool_pluginskel`; it installs and appears when adding an activity to a test course.
-- **Phase 1 — Engine + first game (MVP).** Teacher content authoring → one game end-to-end → server-side scoring → gradebook write → basic leaderboard. Prove the whole pipeline (start with the simplest game to de-risk).
-- **Phase 2 — Competitive layer.** Per-course leaderboard, capabilities, reward rules, the AI-resistance levers.
-- **Phase 3 — Remaining games + polish.** Games 2 & 3, Daily Run + streaks, glossary/question-bank import, animations, responsive + dark mode, accessibility.
+- **Phase 0 — Environment. ✅ Done.** moodle-docker + Moodle 4.5; `mod_agon` scaffolded, installed, live.
+- **Phase 1 — UI + engine (in progress).** ✅ Clickable **UI skeleton** (`prototype/`: student run + professor config/monitor). Next: data model (`db/install.xml`), engine + game contract, JSON content loading, server-authoritative scoring, gradebook, course leaderboard. *(Wire one game's full loop first to de-risk.)*
+- **Phase 2 — Competitive layer.** Reward rules, capabilities, anti-cheat levers, polish.
+- **Phase 3 — Extras.** Daily challenge + streaks, glossary/question-bank import, animations, responsive + dark, accessibility.
 
 ## 9. Notes & open questions
-- The downloaded folder is `tool_pluginskel` — the plugin skeleton **generator**, not the crossword plugin. We'll use it to scaffold `mod_agon`.
-- Open: target Moodle version (default: latest LTS); whether the Daily Run lands in Phase 1 or later; exact leaderboard scoring weights; team size/roles; front-end build tooling (Grunt/AMD modules + Mustache).
+- `prototype/` is a standalone HTML/CSS/JS mock of every screen — design only, ported into Moodle Mustache/AMD as functionality is wired. Open `prototype/index.html`.
+- Content and UI are **English only** (per requirement). Palette: dark teal + green.
+- Open: gradebook ↔ leaderboard mapping; exact reward mechanism for top performers; backup/restore; front-end build (AMD + Mustache); crossword placement validation in the config tool.

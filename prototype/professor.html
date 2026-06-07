@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agon — Professor</title>
+  <link rel="stylesheet" href="css/agon.css">
+</head>
+<body>
+<div class="adm">
+  <div class="adm__bar">
+    <h1>Agon — Activity configuration</h1>
+    <div class="sub">IT 2012 · Week 5 · Tokenization &nbsp;|&nbsp; the professor does not play — configure &amp; monitor</div>
+  </div>
+  <div class="adm__wrap">
+    <div class="tabs">
+      <button class="tab is-active" data-p="setup">Setup</button>
+      <button class="tab" data-p="crossword">Crossword (JSON)</button>
+      <button class="tab" data-p="questions">Questions (JSON)</button>
+      <button class="tab" data-p="coding">Coding (JSON)</button>
+      <button class="tab" data-p="attempts">Student attempts</button>
+      <button class="tab" data-p="leaderboard">Leaderboard</button>
+    </div>
+
+    <!-- SETUP -->
+    <div class="panel is-active" id="p-setup">
+      <div class="grid2">
+        <div class="field"><label>Subject</label><input value="IT 2012 – Unstructured Data"></div>
+        <div class="field"><label>Subject code</label><input value="IT2012"></div>
+        <div class="field"><label>Week</label><input type="number" value="5"></div>
+        <div class="field"><label>Topic</label><input value="Tokenization"></div>
+      </div>
+      <div class="field">
+        <label>Games in this activity</label>
+        <div class="games-pick">
+          <label class="gp"><input type="checkbox" checked> Crossword</label>
+          <label class="gp"><input type="checkbox" checked> Weekly question</label>
+          <label class="gp"><input type="checkbox" checked> Coding</label>
+        </div>
+        <div class="muted">The content of each selected game is entered as JSON in its tab.</div>
+      </div>
+      <div class="field"><label>Hint per attempt</label><select><option>1 (recommended)</option><option>0</option></select></div>
+      <div class="rules">
+        <b>Scoring rules (fixed)</b><br>
+        Crossword: 1st–3rd = <b>1.0</b>, 4th–10th = <b>0.75</b>, others = <b>0.5</b> · no timer<br>
+        Question: correct = <b>1.0</b>, wrong = 0 · timed<br>
+        Coding: 2 sequences × <b>0.5</b>, partial per correct blank · timed<br>
+        1 attempt · points sum into the course leaderboard.
+      </div>
+    </div>
+
+    <!-- CROSSWORD JSON -->
+    <div class="panel" id="p-crossword">
+      <div class="schema">Schema: <code>{ subject, subject_code, week, topic, language, difficulty, author, words:[{ number, word, clue, direction, row, col }] }</code></div>
+      <div class="grid2">
+        <div class="field"><label>Crossword JSON</label><textarea rows="20" id="cw-json"></textarea></div>
+        <div class="field"><label>Preview</label><div class="cw cw--mini" id="cw-prev"></div>
+          <div class="muted" style="margin-top:8px">Note: the tool should validate word intersections before saving.</div></div>
+      </div>
+    </div>
+
+    <!-- QUESTIONS JSON -->
+    <div class="panel" id="p-questions">
+      <div class="schema">Schema: <code>{ subject_code, week, topic, questions:[{ question, options:[...], correct:index, explanation }] }</code> — ~5 questions per week.</div>
+      <div class="field"><label>Questions JSON</label><textarea rows="22" id="q-json"></textarea></div>
+    </div>
+
+    <!-- CODING JSON -->
+    <div class="panel" id="p-coding">
+      <div class="schema">Schema: <code>{ subject_code, week, sequences:[{ title, code (with ____), blanks:[...], options:[...] }] }</code> — 2 sequences, ≥3 blanks, ≥5 options.</div>
+      <div class="field"><label>Coding JSON</label><textarea rows="20" id="code-json"></textarea></div>
+    </div>
+
+    <!-- ATTEMPTS -->
+    <div class="panel" id="p-attempts">
+      <p class="muted">Student attempts in this activity (the professor reviews, does not play).</p>
+      <table class="lbt">
+        <thead><tr><th>Student</th><th>Crossword</th><th>Question</th><th>Coding</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody id="att-rows"></tbody>
+      </table>
+    </div>
+
+    <!-- LEADERBOARD -->
+    <div class="panel" id="p-leaderboard">
+      <p class="muted">Course leaderboard — all players, cumulative points.</p>
+      <table class="lbt">
+        <thead><tr><th>#</th><th>Student</th><th>Points</th></tr></thead>
+        <tbody id="lb-rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script src="js/data.js"></script>
+<script src="js/professor.js"></script>
+</body>
+</html>
