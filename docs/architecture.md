@@ -52,17 +52,21 @@ The professor enables games (`gamecrossword`/`gamequestion`/`gamecoding` columns
 
 Scoring will be **server-authoritative** — the server issues the puzzle, starts the timer, validates the solution, and writes the grade. Today the leaderboard/score values are placeholders rendered in the UI.
 
-## Data model (planned, Phase 2)
+## Data model (Phase 2, in progress)
 
-- `agon` — the activity instance (exists; now also holds the game toggles + JSON content).
-- `agon_attempt` — a student's run: `agonid, userid, gametype, timestart, timefinish, score, state` (+ JSON state).
-- *(maybe)* `agon_response` — per-item answers for detailed scoring/analytics.
+- `agon` — the activity instance (exists; also holds the game toggles + JSON content).
+- `agon_attempt` — a student's run: `agonid, userid, timestart, timefinish, state, score` + per-game `scorecrossword/scorequestion/scorecoding`.
+- *(optional)* `agon_response` — per-item answers for detailed scoring/analytics.
+
+## Build order (Phase 2)
+
+Decided 2026-06-09: start with the **data model + server scoring engine**, and move the front end to **AMD + external web services** for start/submit. Sequence: (1) `agon_attempt` schema, (2) PHP scoring engine, (3) answer-split so `view.php` stops shipping answers in `window.AGON`, (4) AMD + web services (`start_attempt`/`submit`), (5) real leaderboard, (6) gradebook, (7) capabilities, (8) privacy, (9) enforced timers + randomization, (10) tests. Full list in [plan.md](../plan.md) §8.
 
 ## Moodle APIs still to wire (planned)
 
-- **External / web services** (`db/services.php` + `classes/external/`) for `start_attempt`, `submit`, lazy fetches.
+- **External / web services** (`db/services.php` + `classes/external/`) for `start_attempt`, `submit`, lazy fetches — AMD front end calls these. *(Phase 2 comms layer.)*
 - **Gradebook** grade computation in `lib.php` (`agon_update_grades`).
-- **Capabilities** in `db/access.php` (`:play`, `:manage`, `:viewleaderboard`, …).
+- **Capabilities** in `db/access.php` (`:play`, `:manage`, `:viewleaderboard`, …); `view.php` branch moves from `moodle/course:manageactivities` to `mod/agon:manage`.
 - **Privacy** provider update (currently declares no personal data; will change once attempts are stored).
 - **Backup/restore** under `backup/moodle2/`.
 

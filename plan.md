@@ -1,6 +1,6 @@
 # Moodle "agon" — Project Plan
 
-*A competitive, gamified learning plugin for Moodle. Living document — last updated 2026-06-08.*
+*A competitive, gamified learning plugin for Moodle. Living document — last updated 2026-06-09.*
 
 ## 0. Where the project is right now
 **Phase 1 is playable and polished in Moodle.** A teacher configures games + content in the activity settings; a student plays the full run (crossword → 10s question → 45s coding → score), with a Start gate + countdown on the timed games, per-game hints, instant correct/incorrect feedback on each screen, screen transitions, and tap support. **Still placeholder / not yet real (Phase 2):** scoring, attempt tracking, the live leaderboard, gradebook grades, and *server-enforced* timers/scoring — today the timer + grading run client-side. See §8.
@@ -23,7 +23,7 @@ The professor chooses which games the activity includes (3 checkboxes), then pas
 ## 4. Game lineup — a learning ladder (recall → understand → apply)
 A linear run on the week's topic; every game's points sum into one course leaderboard.
 
-1. **Crossword — "recall."** Fill the grid from clues. **No timer.** Scored by finish-rank: **first 3 = 1.0, 4th–10th = 0.75, everyone else = 0.5.**
+1. **Crossword — "recall."** Fill the grid from clues. **No timer.** **Fully solved** → finish-rank among full solvers: **first 3 = 1.0, 4th–10th = 0.75, every later full solve = 0.5.** **Partially solved** → fraction-correct × 0.5, **capped at 0.49**, so a partial can never reach (or beat) a full solver's 0.5.
 2. **Weekly Question — "understand."** Behind a **Start gate**: press Start → the question reveals and a **10-second** clock runs; the **options are blurred** (tap/hover to read). **Correct = 1.0, wrong = 0**, with instant feedback.
 3. **Coding — "apply."** Behind a **Start gate** with a **45-second** clock. **Two code sequences** revealed **one line at a time**; each revealed line is drag/tap-droppable and revealing the next **locks** the previous lines. Each sequence **0.5**, **partial per correct placement**.
 
@@ -45,11 +45,22 @@ Goal: **honest play faster than cheating**. **Implemented (UI):** a **Start gate
 ## 8. Phased roadmap
 - **Phase 0 — Environment. ✅ Done.** moodle-docker + Moodle 4.5; `mod_agon` scaffolded, installed, live.
 - **Phase 1 — Playable in Moodle. ✅ Done.** `view.php` renders the student game (Mustache + plain JS) vs a teacher monitor; activity config (game toggles + per-game JSON with guidelines + examples) saved to DB columns; play is content-driven (example fallback); flow respects the enabled games; UI anti-cheat (blur + progressive reveal/lock).
-- **Phase 2 — Real backend (next).** DB tables for attempts/responses; server-side scoring; attempt lifecycle; the real course leaderboard; gradebook grades; `db/access.php` capabilities; privacy provider update (we will store personal data); enforced timers + randomization; one-attempt enforcement.
+- **Phase 2 — Real backend (in progress).** Make scoring server-authoritative and the leaderboard real. Built in this order:
+  1. **Data model.** `agon_attempt` (one row per run: `agonid, userid, timestart, timefinish, state, score` + per-game `scorecrossword/scorequestion/scorecoding`); optional `agon_response` for per-item analytics. Via `db/install.xml` + `db/upgrade.php` + a `version.php` bump.
+  2. **Scoring engine (server).** A PHP engine class owns the §4 rules: validates a submission and returns the per-game + total score. No grading in the browser.
+  3. **Answer split.** `view.php` ships only *renderable* content to `window.AGON` (clues, options, code-with-blanks) — never the `correct` index or coding `blanks`. Answers stay server-side.
+  4. **Comms layer — AMD + web services.** Front end moves to AMD modules calling external services (`start_attempt`, `submit_game`/`finish`) in `db/services.php` + `classes/external/`. `start_attempt` issues the puzzle and stamps the server clock; submit validates + scores via the engine; enforces one attempt.
+  5. **Real leaderboard.** Cumulative course-wide sum across attempts/weeks; replaces the placeholder arrays in the student results screen and the teacher monitor.
+  6. **Gradebook.** Wire `agon_update_grades` so the top-performer reward (§4/§5) lands in the gradebook.
+  7. **Capabilities.** `db/access.php` (`mod/agon:play`, `:manage`, `:viewleaderboard`); switch the `view.php` teacher branch from `moodle/course:manageactivities` to `mod/agon:manage`.
+  8. **Privacy provider.** Replace the `null_provider` with a real provider describing the stored attempts/responses.
+  9. **Enforced timers + randomization.** Server compares its `timestart` against submit time (client countdown becomes display-only); per-attempt question/word selection.
+  10. **Tests.** Replace the placeholder PHPUnit stub with real engine tests; Behat for the play flow; `moodle-plugin-ci` in CI.
 - **Phase 3 — Full experience.** Daily challenge + streaks; glossary/question-bank import; screen transitions + micro-animations; accessibility + touch support; dark mode; crossword placement validation; backup/restore.
 
 ## 9. Notes & open questions
 - The play view currently renders from the saved JSON with **placeholder** leaderboard/attempt data (real data comes in Phase 2).
 - Content and UI are **English only**. Palette: dark teal + green.
 - `prototype/` is a standalone HTML/CSS/JS mock; the real UI now lives in `templates/` + `js/` + `styles.css`.
-- Open: gradebook ↔ leaderboard mapping; exact reward mechanism for top performers; touch/drag support (HTML5 DnD + hover don't work on touch); whether to move the front-end to AMD; crossword placement validation in the config tool.
+- **Decided (2026-06-09):** Phase 2 starts with the data model + server scoring engine; the front end moves to **AMD + external web services** for start/submit (resolves the earlier "move to AMD?" question).
+- Open: gradebook ↔ leaderboard mapping; exact reward mechanism for top performers; touch/drag support (HTML5 DnD + hover don't work on touch); crossword placement validation in the config tool.

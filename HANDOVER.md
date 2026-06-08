@@ -69,13 +69,18 @@ To see the **student** game, log in as `agonstu` (an incognito window is cleanes
 | `classes/event/` | course-module-viewed events |
 | `prototype/` | standalone HTML/CSS/JS design mock (not shipped) |
 
-## 6. Next steps (Phase 2)
+## 6. Next steps (Phase 2 — in progress)
 
-1. `agon_attempt` table + attempt lifecycle (start / record responses / finish).
-2. Server-side scoring per the rules in plan.md → real per-activity result.
-3. Real course leaderboard (cumulative) + gradebook grade.
-4. `db/access.php` capabilities + update the privacy provider.
-5. Enforce timers + add per-attempt randomization.
+Decided 2026-06-09: build the **data model + server scoring engine** first; move the front end to **AMD + external web services** for start/submit. Order (full list in [plan.md](plan.md) §8):
+
+1. `agon_attempt` table + version bump (per-run row: times, state, total + per-game scores).
+2. Server-side scoring engine (the §4 rules) → real per-activity result; no grading in the browser.
+3. Answer-split: `view.php` stops shipping `correct`/`blanks` in `window.AGON`.
+4. AMD + web services (`start_attempt` / `submit` / `finish`) + one-attempt enforcement.
+5. Real cumulative course leaderboard + gradebook grade.
+6. `db/access.php` capabilities + real privacy provider.
+7. Server-enforced timers + per-attempt randomization.
+8. Real PHPUnit/Behat tests.
 
 ## 7. Deploying to a real (e.g. university) Moodle
 
