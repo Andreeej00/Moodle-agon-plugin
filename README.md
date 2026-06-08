@@ -2,9 +2,17 @@
 
 > **`mod_agon`** · A Moodle activity that turns a week's course topic into a short, competitive run of mini-games — so students prep for quizzes by *playing*.
 
-> ⚠️ **Status: Phase 1 — UI skeleton.** The plugin installs and runs in Moodle (Phase 0 done); a clickable mock of every screen lives in [`prototype/`](prototype/index.html). Game logic and scoring are next. See the [roadmap](#️-roadmap).
+> **Status: Phase 1 — playable in Moodle.** The activity installs and runs: a teacher picks the games and pastes the content, and a student plays the whole run (crossword → question → coding → score) inside Moodle. Real scoring, attempt tracking, and the live leaderboard are the next (backend) step — those numbers are still placeholders.
 
-<!-- ![Agon gameplay](docs/img/hero.gif) -->
+## 📸 Screens
+
+| Opening | Crossword | Weekly question |
+| --- | --- | --- |
+| ![Opening](docs/img/opening.png) | ![Crossword](docs/img/crossword.png) | ![Weekly question](docs/img/weekly_question.png) |
+
+| Coding | Completion | Teacher config |
+| --- | --- | --- |
+| ![Coding](docs/img/coding.png) | ![Completion](docs/img/completion.png) | ![Teacher config](docs/img/config.png) |
 
 ## ✨ What is Agon?
 
@@ -22,40 +30,53 @@ A student plays a linear run on the week's topic — each game asks them to do *
 
 **One hint** and **one attempt**; all points **sum into a single course-wide leaderboard**. On finishing, the student sees today's score + a leaderboard preview.
 
+## 🎮 Play experience
+
+A **Start gate + countdown** on the timed games (the question/code stay hidden until you press Start), smooth **screen transitions**, **per-game hints** (reveal a crossword letter, show the question's explanation, or cue the next code blank), **instant feedback** on every screen (what you got right/wrong, with an animated count-up final score), and a **tap-friendly** UI for phones.
+
 ## 👤 Two views
 
-- **Student** — plays the run (Start → Crossword → Question → Reveal → Coding → Review → Score), with a bottom-nav stepper.
+- **Student** — plays the run: **Start → Crossword → Weekly question → Coding → Score** (bottom-nav stepper).
 - **Professor / assistant** — **doesn't play**: **configures** the activity (picks games + pastes each game's **JSON** content) and **monitors** (student attempts + leaderboard).
 
-## 🛡️ Designed to be fair
+## 🛡️ Anti-AI by design
 
-Real grade points are on the line, so Agon makes **honest play faster than cheating** (not "AI-proof"): **tight timers** (question + coding), **per-attempt randomization**, and **click/drag interaction** that doesn't copy-paste. The crossword is the low-stakes, shareable warm-up.
+Real grade points are on the line, so the goal is **honest play faster than cheating** (not "AI-proof"). Implemented in the UI:
 
-## 🧩 Built to be generic & extensible
+- **Start gate + countdown** — the question (10s) and coding (45s) stay hidden behind a Start button; the content reveals and the clock starts only when the student commits, so they can't pre-read or screenshot before the timer. Time-up auto-submits.
+- **Weekly question** — the options are **blurred** (tap/hover to read one), so the whole set can't be screenshotted at once.
+- **Coding** — revealed **one line at a time**, and revealing the next line **locks the lines above** — no reveal-everything-then-screenshot.
+- **Crossword** — deliberately the low-stakes, shareable warm-up.
 
-Under the hood: **one engine + pluggable games** — a shared core (content, scoring, timing, leaderboard, gradebook) with each game a swappable "renderer." Teachers choose which games an activity includes.
+Still server-side (Phase 2): authoritative scoring, server-enforced timers, per-attempt randomization. *(Today the timer + scoring run client-side.)*
 
-→ Full design: **[plan.md](plan.md)** · Architecture: **[docs/architecture.md](docs/architecture.md)**
+## 🧩 Architecture (short)
+
+**One engine + pluggable games** — a shared core (content, scoring, timing, leaderboard, gradebook) with each game as a swappable "renderer." Teachers choose which games an activity includes. In Moodle it renders via Mustache templates + plain JS, styled by a scoped `styles.css`.
+
+→ Full design: **[plan.md](plan.md)** · Architecture: **[docs/architecture.md](docs/architecture.md)** · Setup & handover: **[HANDOVER.md](HANDOVER.md)**
 
 ## 🗺️ Roadmap
 
 - **Phase 0 — Setup:** ✅ moodle-docker, `mod_agon` scaffolded, installed, live.
-- **Phase 1 — UI + engine:** ✅ UI skeleton (`prototype/`). Next: data model, engine + game contract, JSON content, server-side scoring, gradebook, course leaderboard. ← *here*
-- **Phase 2 — Competitive layer:** rewards, capabilities, anti-cheat levers.
-- **Phase 3 — Full experience:** daily challenge + streaks, glossary / question-bank import, polish.
+- **Phase 1 — Playable in Moodle:** ✅ student game + teacher config/monitor render in Moodle; activity config (games + JSON content) saved; play is content-driven. ← *here*
+- **Phase 2 — Real backend:** server-side scoring, attempt tracking, the live course leaderboard, gradebook, capabilities, enforced timers + randomization.
+- **Phase 3 — Full experience:** daily challenge + streaks, glossary / question-bank import, transitions/animations, accessibility, touch support, dark mode.
 
 ## 🚀 Getting started
 
-**Preview the UI** (no install): open [`prototype/index.html`](prototype/index.html) in a browser — try the **Student** run and the **Professor** view.
+**Run it in Moodle (dev):** with [moodle-docker](https://github.com/moodlehq/moodle-docker), place this folder at `<moodle>/mod/agon` and install from the admin *Notifications* page. Full setup, test accounts, and gotchas are in **[HANDOVER.md](HANDOVER.md)**.
 
-**Run in Moodle** (dev): with [moodle-docker](https://github.com/moodlehq/moodle-docker), place this folder at `<moodle>/mod/agon` and install from the admin *Notifications* page. To install on another Moodle, zip the plugin with a top folder named `agon` and upload via *Site administration → Plugins → Install plugins* (built on Moodle 4.5 LTS).
+**Install on another Moodle:** zip the plugin with a single top folder named `agon` and upload via *Site administration → Plugins → Install plugins* (built on **Moodle 4.5 LTS**).
+
+**Static design mock (no Moodle):** open [`prototype/index.html`](prototype/index.html) in a browser.
 
 ## 📁 Repository layout
 
 This repo **is** the `mod_agon` plugin (installs to `mod/agon`):
-- plugin source at the root — `version.php`, `lib.php`, `mod_form.php`, `view.php`, `db/`, `classes/`, `lang/`, `pix/`, `tests/`
+- plugin source at the root — `version.php`, `lib.php`, `mod_form.php`, `view.php`, `db/`, `classes/`, `lang/`, `pix/`, `styles.css`, `templates/`, `js/`, `tests/`
 - `prototype/` — standalone clickable UI mock (design only; not shipped to Moodle)
-- `plan.md`, `docs/` — plan & architecture notes
+- `plan.md`, `docs/`, `HANDOVER.md` — plan, architecture, and handover notes
 
 ## 📜 License
 

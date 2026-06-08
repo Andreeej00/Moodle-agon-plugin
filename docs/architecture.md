@@ -1,64 +1,71 @@
 # Architecture
 
-Technical companion to [plan.md](../plan.md). This describes *how* `mod_agon` is built; `plan.md` covers *what* and *why*.
+Technical companion to [plan.md](../plan.md). This describes *how* `mod_agon` is built; `plan.md` covers *what* and *why*. Sections marked **(planned)** are not built yet.
 
 ## Plugin type
 
-`mod_agon` is a Moodle **activity module** (`/mod/agon/`) — giving a per-instance DB table + settings form, **gradebook integration**, a **capability** system, **backup/restore**, and per-user attempt tracking.
+`mod_agon` is a Moodle **activity module** (`/mod/agon/`) — giving a per-instance DB table + settings form, gradebook hooks, a capability system, backup/restore, and per-user attempt tracking.
 
 ## The engine + pluggable games
 
 **One shared engine with swappable game "renderers"** — like an MVVM ViewModel (shared state) with interchangeable views.
 
-- **Engine (shared):** content store, attempt & state tracking, scoring + timing, per-attempt randomization, leaderboard, gradebook writes.
-- **Renderers (per game):** each game reads engine state and draws its own UI. Adding a game = adding a renderer + its scoring rule. No schema rewrite.
+- **Engine (shared):** content, attempts, scoring, timing, randomization, leaderboard, gradebook. *(Today this is partly the front-end + config storage; the server-side engine is Phase 2.)*
+- **Renderers (per game):** each game reads the same data and draws its own UI. Adding a game = adding a renderer + its scoring rule.
 
-## Content model — JSON per game (entered at setup)
+## How it renders in Moodle (current)
 
-The professor enables games and pastes each game's content as JSON, per week/topic:
+- **`view.php`** loads the instance, branches by capability (`moodle/course:manageactivities` → teacher **monitor** view; else **student** game), builds a `$agondata` array from the saved content (with an example fallback), renders a Mustache template, and prints the data as `window.AGON` via `html_writer::script`.
+- **Templates:** `templates/student.mustache`, `templates/professor.mustache`.
+- **JS:** plain `js/student.js`, `js/professor.js`, loaded with `$PAGE->requires->js($url, false)` — **footer** (false) so the script runs *after* the `window.AGON` block. URL has a `filemtime` cache-buster. (Not AMD yet.)
+- **CSS:** `styles.css`, every rule scoped under `.agon` to avoid clashing with Moodle/Bootstrap.
+
+## Content model — JSON per game (stored on the instance)
+
+The professor enables games (`gamecrossword`/`gamequestion`/`gamecoding` columns) and pastes each game's JSON (`contentcrossword`/`contentquestion`/`contentcoding` text columns). Per week/topic:
 
 - **Crossword:** `{ subject, subject_code, week, topic, language, difficulty, author, words:[{ number, word, clue, direction, row, col }] }`
-- **Questions:** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }` (~5/week)
-- **Coding:** `{ subject_code, week, sequences:[{ title, code (with ____), blanks:[…], options:[…] }] }` (2 sequences)
+- **Questions:** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }`
+- **Coding:** `{ subject_code, week, sequences:[{ title, code (with ____), blanks:[…], options:[…] }] }`
 
-*(Later: importers from Glossary / Question Bank.)*
+`mod_form.php` provides the toggles + per-game textareas (with guideline text + editable example defaults, shown/hidden via `hideIf`). Saving works because the column names match the form field names (Moodle `insert_record`/`update_record` map them).
 
-## Scoring & integrity
+## Anti-cheat & play mechanics
 
-Scoring is **server-authoritative** — the browser is never trusted, because results convert to grades. The server issues the puzzle, starts the timer, and validates the solution.
+**Implemented (client-side UI):**
+- **Start gate + countdown:** the question/coding stages hide their content behind a "Start" button; on Start the content renders and a `setInterval` countdown runs (10s / 45s); time-up auto-submits.
+- Question options blurred, cleared on hover or tap (`.opt.peek` / `.opt.is-revealed`).
+- Coding split into per-line `.codeline` divs; only the first shows; "reveal next line" un-hides the next and `.is-locked`s the blanks above.
+- **Per-game hints** (reveal a crossword letter / show the question explanation / cue the next code blank) and **per-screen feedback** (grade client-side, colour cells/options/blanks, show a banner).
 
-**Rules:**
-- **Crossword** — finish-rank: 1st–3rd = 1.0, 4th–10th = 0.75, rest = 0.5 (no timer).
-- **Question** — correct = 1.0, wrong = 0 (timed).
-- **Coding** — 2 sequences × 0.5, partial per correct placement (timed).
-- One hint, one attempt. Points **sum into one course-wide leaderboard**.
-
-### Anti-cheat levers (server-enforced)
-**Tight timers** (question + coding) · **per-attempt randomization** · **click/drag interaction** that doesn't copy-paste. Crossword is the deliberate shareable, low-stakes exception.
+**(planned, server-side):** server-authoritative scoring, server-enforced timers, per-attempt randomization. The browser must never decide the grade — the client-side grading here is skeleton-only and exposes answers in `window.AGON`.
 
 ## The three games
 
 | Game | Rung | Mechanic | Timed |
 | --- | --- | --- | --- |
 | Crossword | Recall | Fill grid from clues (shared grid) | no |
-| Weekly Question | Understand | Timed MCQ → confirm → reveal answer | yes |
-| Coding | Apply | Two sequences; click/drag options into ≥3 blanks each | yes |
+| Weekly Question | Understand | Blurred options (hover to read); pick one | yes |
+| Coding | Apply | Two sequences revealed line-by-line; drag/click options into blanks; earlier lines lock | yes |
 
-## Roles & views
+## Scoring & integrity (planned)
 
-- **Student** — plays the linear run (Start → Crossword → Question → Reveal → Coding → Review → Score + leaderboard preview) with an inner bottom-nav stepper.
-- **Professor / assistant** — **does not play**; **configures** (choose games + paste JSON content) and **monitors** (student attempts table + course leaderboard). Gated by capabilities.
+Scoring will be **server-authoritative** — the server issues the puzzle, starts the timer, validates the solution, and writes the grade. Today the leaderboard/score values are placeholders rendered in the UI.
 
-## UI prototype
+## Data model (planned, Phase 2)
 
-A standalone clickable mock of every screen lives in [`../prototype/`](../prototype/index.html) (plain HTML/CSS/JS). Design-only — ported into Mustache/AMD as functionality is wired.
+- `agon` — the activity instance (exists; now also holds the game toggles + JSON content).
+- `agon_attempt` — a student's run: `agonid, userid, gametype, timestart, timefinish, score, state` (+ JSON state).
+- *(maybe)* `agon_response` — per-item answers for detailed scoring/analytics.
 
-## Front-end & Moodle APIs (planned)
+## Moodle APIs still to wire (planned)
 
-- **AMD modules** (`amd/src` → `amd/build`) for game logic; **Mustache templates** (`templates/`) for rendering.
-- **External / web services** (`db/services.php` + `classes/external/`) for `start_attempt`, `submit`, and lazy "fetch next piece" calls.
-- **Gradebook** callbacks in `lib.php`; **capabilities** in `db/access.php`; **backup/restore** under `backup/moodle2/`.
+- **External / web services** (`db/services.php` + `classes/external/`) for `start_attempt`, `submit`, lazy fetches.
+- **Gradebook** grade computation in `lib.php` (`agon_update_grades`).
+- **Capabilities** in `db/access.php` (`:play`, `:manage`, `:viewleaderboard`, …).
+- **Privacy** provider update (currently declares no personal data; will change once attempts are stored).
+- **Backup/restore** under `backup/moodle2/`.
 
 ## Testing
 
-- **moodle-docker** for a local Moodle + DB; **PHPUnit** on the engine; **Behat** for flows; **moodle-plugin-ci** in GitHub Actions once code exists.
+- **moodle-docker** for a local Moodle + DB (see `HANDOVER.md`). **PHPUnit** on the engine and **Behat** for flows are planned; **moodle-plugin-ci** in GitHub Actions once there's logic to test.

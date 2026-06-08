@@ -1,6 +1,6 @@
 /* mod_agon — styles (scoped under .agon to avoid clashing with Moodle/Bootstrap). */
 .agon{
-  --brand:#103b34; --accent:#16a34a; --accent-2:#2bbd6b;
+  --brand:#103b34; --accent:#0e7d39; --accent-2:#2bbd6b;
   --card:#fff; --ink:#16221f; --muted:#5f6f6a; --line:#e1e8e4;
   --sel:#e7f6ee; --good:#16a34a; --bad:#e23b56; --gold:#f4b400;
   --r:18px; --shadow:0 12px 30px rgba(16,59,52,.14);
@@ -71,17 +71,62 @@
 .agon .seq__title{font-weight:700;font-size:14px;margin:.2em 0 .5em}
 .agon .code{background:#102a26;color:#e7f5ee;border-radius:12px;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:2;white-space:pre-wrap}
 .agon .code b{color:#7fe3ad;font-weight:700}
-.agon .blank{display:inline-block;min-width:62px;border-bottom:2px dashed #6f8a82;color:#9fb;text-align:center;padding:0 6px;cursor:pointer}
+.agon .blank{display:inline-block;min-width:62px;border:0;border-bottom:2px dashed #6f8a82;background:transparent;color:#9fb;text-align:center;padding:0 6px;cursor:pointer;font-family:ui-monospace,monospace;font-size:13px}
 .agon .blank.is-filled{border-bottom:2px solid var(--accent);background:rgba(43,189,107,.3);color:#fff;border-radius:5px}
 .agon .blank.drag-over{background:rgba(43,189,107,.45);border-radius:5px}
 .agon .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.agon .chip{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-family:ui-monospace,monospace;font-size:13px;cursor:grab;user-select:none}
+.agon .chip{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;font-family:ui-monospace,monospace;font-size:13px;color:var(--ink);cursor:grab;user-select:none}
 .agon .chip.is-sel{border-color:var(--accent);background:var(--sel)}
 .agon .chip.is-used{opacity:.35;pointer-events:none}
 .agon .codeline{min-height:1.9em}
 .agon .codeline.is-hidden{display:none}
 .agon .reveal-line{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;background:var(--sel);color:var(--accent);border:1.5px dashed var(--accent);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer}
 .agon .blank.is-locked{cursor:not-allowed;border-bottom-style:solid;opacity:.85}
+
+/* screen transitions + micro-interactions */
+@media (prefers-reduced-motion: no-preference){
+  .agon .stage.is-active{animation:agonenter .32s cubic-bezier(.2,.7,.2,1) both}
+  .agon .score-big.pop{animation:agonpop .45s ease both}
+  .agon .chip.is-cued{animation:agonpulse 1.1s ease infinite}
+}
+@keyframes agonenter{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+@keyframes agonpop{0%{opacity:0;transform:scale(.6)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes agonpulse{0%,100%{box-shadow:0 0 0 3px rgba(22,163,74,.28)}50%{box-shadow:0 0 0 7px rgba(22,163,74,.08)}}
+
+/* touch: tap reveals a blurred option */
+.agon .opt.is-revealed{filter:none}
+
+/* per-screen feedback */
+.agon .feedback{border-radius:12px;padding:12px 14px;margin:12px 0 0;font-size:14px;font-weight:600}
+.agon .feedback.is-good{background:#e7f6ee;border:1px solid #bfe8cf;color:var(--good)}
+.agon .feedback.is-bad{background:#fdeef1;border:1px solid #f3c9d3;color:var(--bad)}
+.agon .feedback .fb-exp{display:block;margin-top:6px;font-weight:400;color:var(--ink)}
+.agon .hintbox{background:#fff8e6;border:1px solid #f0e0a8;border-radius:12px;padding:10px 14px;margin:12px 0 0;font-size:14px;color:#7a5d00}
+
+/* correctness markers */
+.agon .cw__cell.is-correct input{border-color:var(--good);background:#e7f6ee}
+.agon .cw__cell.is-wrong input{border-color:var(--bad);background:#fdeef1}
+.agon .cw__cell.is-hint input{border-color:var(--accent);background:var(--sel)}
+.agon .opt.is-correct{border-color:var(--good);background:#e7f6ee}
+.agon .opt.is-wrong{border-color:var(--bad);background:#fdeef1}
+.agon .blank.is-correct{border-bottom:2px solid var(--good);background:rgba(22,163,74,.28);color:#fff;border-radius:5px}
+.agon .blank.is-wrong{border-bottom:2px solid var(--bad);background:rgba(226,59,86,.28);color:#fff;border-radius:5px}
+.agon .blank.is-cued{outline:2px dashed var(--accent);outline-offset:2px}
+.agon .chip.is-cued{border-color:var(--accent)}
+
+/* timed-game Start gate + low-time timer */
+.agon .ready{text-align:center;background:var(--card);border:1px dashed var(--line);border-radius:var(--r);padding:28px 18px;margin-top:8px}
+.agon .ready__big{font-size:30px;font-weight:800;color:var(--accent);margin-bottom:6px}
+.agon .ready p{color:var(--muted);font-size:14px;margin:0}
+.agon .timer.is-low{background:var(--bad);color:#fff}
+@media (prefers-reduced-motion: no-preference){ .agon .timer.is-low{animation:agontick 1s ease infinite} }
+@keyframes agontick{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+/* accessibility */
+.agon .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.agon a:focus-visible,.agon button:focus-visible,.agon input:focus-visible,.agon [tabindex]:focus-visible{outline:3px solid #2b6cff;outline-offset:2px;border-radius:6px}
+.agon .opt.peek:focus-visible{filter:none}
+.agon .stage__title:focus,.agon .stage__title:focus-visible{outline:none}
 
 .agon .score-big{font-size:48px;font-weight:800;text-align:center;color:var(--accent);line-height:1;margin-bottom:6px}
 .agon .score-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
