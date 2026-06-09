@@ -65,12 +65,6 @@ $enabledgames = [
     'coding' => (bool)$moduleinstance->gamecoding,
 ];
 
-// Placeholder leaderboard/attempts until cumulative tracking lands (Phase 2 step 5).
-$placeholderlb = [
-    ['name' => 'Amila H.', 'pts' => 14.25], ['name' => 'Tarik B.', 'pts' => 13.50], ['name' => 'Lejla K.', 'pts' => 12.75],
-    ['name' => 'You', 'pts' => 11.50, 'me' => true], ['name' => 'Emir S.', 'pts' => 10.25], ['name' => 'Nina P.', 'pts' => 9.00],
-];
-
 // Answer-free content (subject/week + renderable game data with no answers).
 $public = \mod_agon\local\content::public_for_render($moduleinstance->id);
 $meta = $public['meta'];
@@ -82,20 +76,14 @@ if ($view === 'student') {
         'crossword' => $public['crossword'],
         'questions' => $public['questions'],
         'coding' => $public['coding'],
-        'leaderboard' => $placeholderlb,
+        // The leaderboard is fetched live (mod_agon_get_leaderboard) once the run finishes.
     ];
 } else {
     $agondata = [
         'meta' => $meta,
         'enabledGames' => $enabledgames,
-        'leaderboard' => $placeholderlb,
-        'attempts' => [
-            ['name' => 'Amila H.', 'crossword' => 1.0, 'question' => 1.0, 'coding' => 0.5, 'done' => true],
-            ['name' => 'Tarik B.', 'crossword' => 0.75, 'question' => 1.0, 'coding' => 0.4, 'done' => true],
-            ['name' => 'Lejla K.', 'crossword' => 0.75, 'question' => 0.0, 'coding' => 0.5, 'done' => true],
-            ['name' => 'Emir S.', 'crossword' => 0.5, 'question' => 1.0, 'coding' => 0.3, 'done' => true],
-            ['name' => 'Nina P.', 'crossword' => 0.5, 'question' => 0.0, 'coding' => 0.0, 'done' => false],
-        ],
+        'leaderboard' => \mod_agon\local\leaderboard::course_totals($course->id),
+        'attempts' => \mod_agon\local\leaderboard::attempts($moduleinstance->id),
     ];
 }
 

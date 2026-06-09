@@ -86,6 +86,18 @@ final class services_test extends \advanced_testcase {
         $this->assertSame('B.', $hint['explanation']);
     }
 
+    public function test_get_leaderboard_lists_the_current_user(): void {
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+        submit_game::execute($this->agon->cmid, 'question', json_encode(['selected' => 1]));
+
+        $res = external_api::clean_returnvalue(
+            get_leaderboard::execute_returns(), get_leaderboard::execute($this->agon->cmid));
+        $this->assertNotEmpty($res['leaderboard']);
+        $this->assertEqualsWithDelta(1.0, $res['leaderboard'][0]['pts'], 1e-9);
+        $this->assertTrue($res['leaderboard'][0]['me']);
+    }
+
     public function test_play_requires_capability(): void {
         // An editing teacher does not get mod/agon:play.
         $teacher = $this->getDataGenerator()->create_and_enrol($this->course, 'editingteacher');

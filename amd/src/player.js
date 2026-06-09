@@ -484,7 +484,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 };
                 requestAnimationFrame(stepfn);
             };
-            var paintResults = function(total) {
+            var paintScores = function(total) {
                 var rows = '';
                 [['crossword', 'Crossword'], ['question', 'Question'], ['coding', 'Coding']].forEach(function(d) {
                     if (games[d[0]]) {
@@ -495,27 +495,33 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 if ($('score-rows')) { $('score-rows').innerHTML = rows; }
                 if ($('score-total')) { $('score-total').classList.add('pop'); countUp($('score-total'), Number(total)); }
                 announce('Your score: ' + Number(total).toFixed(2) + ' points.');
-                if ($('lb')) {
-                    $('lb').innerHTML = (D.leaderboard || []).slice().sort(function(a, b) { return b.pts - a.pts; })
-                        .map(function(p, i) {
-                            return '<li class="' + (p.me ? 'is-me' : '') + '"><span class="rank" aria-hidden="true">' + (i + 1) +
-                                '</span><span class="who">' + esc(p.name) + '</span><span class="pts">' + p.pts.toFixed(2) + '</span></li>';
-                        }).join('');
-                }
+            };
+            var renderBoard = function(list) {
+                if (!$('lb')) { return; }
+                $('lb').innerHTML = (list || []).map(function(p, i) {
+                    return '<li class="' + (p.me ? 'is-me' : '') + '"><span class="rank" aria-hidden="true">' + (i + 1) +
+                        '</span><span class="who">' + esc(p.name) + '</span><span class="pts">' + Number(p.pts).toFixed(2) + '</span></li>';
+                }).join('') || '<li class="lb-empty">No scores yet — be the first!</li>';
+            };
+            var fetchBoard = function() {
+                call('mod_agon_get_leaderboard', {cmid: CMID})
+                    .then(function(res) { renderBoard(res.leaderboard); return res; })
+                    .catch(function(err) { Notification.exception(err); });
             };
             function renderResults() {
-                var fallback = (Number(scores.crossword || 0) + Number(scores.question || 0) + Number(scores.coding || 0));
-                if (finished) { paintResults(fallback); return; }
+                var sum = (Number(scores.crossword || 0) + Number(scores.question || 0) + Number(scores.coding || 0));
+                if (finished) { paintScores(sum); fetchBoard(); return; }
                 call('mod_agon_finish_attempt', {cmid: CMID})
                     .then(function(resp) {
                         finished = true;
                         scores.crossword = resp.scorecrossword;
                         scores.question = resp.scorequestion;
                         scores.coding = resp.scorecoding;
-                        paintResults(resp.score);
+                        paintScores(resp.score);
+                        fetchBoard();
                         return resp;
                     })
-                    .catch(function(err) { paintResults(fallback); Notification.exception(err); });
+                    .catch(function(err) { paintScores(sum); fetchBoard(); Notification.exception(err); });
             }
 
             // ---------- boot: open or resume the attempt ----------

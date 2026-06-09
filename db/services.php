@@ -57,4 +57,12 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'mod/agon:play',
     ],
+    'mod_agon_get_leaderboard' => [
+        'classname' => 'mod_agon\external\get_leaderboard',
+        'methodname' => 'execute',
+        'description' => 'Return the cumulative course leaderboard.',
+        'type' => 'read',
+        'ajax' => true,
+        'capabilities' => 'mod/agon:viewleaderboard',
+    ],
 ];
