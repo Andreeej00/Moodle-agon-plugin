@@ -63,11 +63,27 @@ final class services_test extends \advanced_testcase {
         $this->assertEqualsWithDelta(1.0, $submitted['scorequestion'], 1e-9);
         $this->assertEqualsWithDelta(1.0, $submitted['score'], 1e-9);
         $this->assertContains('question', $submitted['submittedgames']);
+        // Reveal-on-submit: the now-finished game returns its answer + explanation.
+        $feedback = json_decode($submitted['feedback'], true);
+        $this->assertSame(1, $feedback['correct']);
+        $this->assertSame('B.', $feedback['explanation']);
 
         $finished = external_api::clean_returnvalue(
             finish_attempt::execute_returns(), finish_attempt::execute($this->agon->cmid));
         $this->assertSame('finished', $finished['state']);
         $this->assertGreaterThan(0, $finished['timefinish']);
+    }
+
+    public function test_get_hint_returns_explanation(): void {
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+
+        $result = external_api::clean_returnvalue(
+            get_hint::execute_returns(),
+            get_hint::execute($this->agon->cmid, 'question', '{}'));
+        $hint = json_decode($result['hint'], true);
+        $this->assertSame('question', $hint['type']);
+        $this->assertSame('B.', $hint['explanation']);
     }
 
     public function test_play_requires_capability(): void {

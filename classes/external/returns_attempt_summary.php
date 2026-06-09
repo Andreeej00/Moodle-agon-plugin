@@ -61,6 +61,11 @@ trait returns_attempt_summary {
                 new external_value(PARAM_ALPHA, 'A submitted game key'),
                 'Games already submitted in this attempt'
             ),
+            'feedback' => new external_value(
+                PARAM_RAW,
+                'JSON of the just-submitted game\'s revealed answers + explanation',
+                VALUE_OPTIONAL
+            ),
         ]);
     }
 }

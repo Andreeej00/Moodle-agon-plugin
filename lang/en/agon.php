@@ -34,6 +34,7 @@ $string['agonname_help'] = 'This is the name of this Agon activity as it appears
 $string['agonsettings'] = 'Settings';
 $string['attemptnotinprogress'] = 'This attempt is not in progress, so it cannot be changed.';
 $string['gamealreadysubmitted'] = 'This game has already been submitted in this attempt.';
+$string['hintalreadyused'] = 'You have already used your hint for this game.';
 $string['missingidandcmid'] = 'You must specify a course_module ID or an instance ID.';
 $string['modulename'] = 'Agon';
 $string['modulename_help'] = 'The Agon activity turns your course terms into competitive minigames — a crossword, a timed reveal-and-answer round, and a code-application challenge — so students revise by playing. Results feed a class leaderboard.';

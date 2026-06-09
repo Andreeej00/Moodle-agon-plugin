@@ -66,6 +66,7 @@ class attempt {
             'scorecoding' => 0,
             'timemodified' => $now,
             'submittedgames' => '[]',
+            'hintsused' => '[]',
         ];
         $record->id = $DB->insert_record('agon_attempt', $record);
         return $record;
@@ -107,7 +108,7 @@ class attempt {
             throw new \moodle_exception('gamealreadysubmitted', 'mod_agon');
         }
 
-        $content = self::load_content($attempt->agonid);
+        $content = content::raw($attempt->agonid);
 
         switch ($game) {
             case 'crossword':
@@ -179,6 +180,54 @@ class attempt {
     }
 
     /**
+     * The list of games whose one hint has already been used.
+     *
+     * @param stdClass $attempt
+     * @return string[]
+     */
+    public static function hints_used(stdClass $attempt): array {
+        $list = json_decode((string)($attempt->hintsused ?? ''), true);
+        return is_array($list) ? array_values($list) : [];
+    }
+
+    /**
+     * Spend this attempt's one hint for a game and return it.
+     *
+     * Enforced server-side: a second hint for the same game is refused, so hints
+     * cannot be used as an answer oracle once answers leave the client.
+     *
+     * @param stdClass $attempt The attempt (reloaded internally).
+     * @param string $game crossword|question|coding
+     * @param array $payload Optional progress {filled: [...]} so the hint targets an empty cell/blank.
+     * @return array The hint.
+     */
+    public static function use_hint(stdClass $attempt, string $game, array $payload = []): array {
+        global $DB;
+
+        if (!in_array($game, self::GAMES, true)) {
+            throw new \coding_exception('Unknown agon game: ' . $game);
+        }
+
+        $attempt = self::get($attempt->id);
+        if ($attempt->state !== self::STATE_INPROGRESS) {
+            throw new \moodle_exception('attemptnotinprogress', 'mod_agon');
+        }
+        $used = self::hints_used($attempt);
+        if (in_array($game, $used, true)) {
+            throw new \moodle_exception('hintalreadyused', 'mod_agon');
+        }
+
+        $hint = content::hint($attempt->agonid, $game, $payload);
+
+        $used[] = $game;
+        $attempt->hintsused = json_encode(array_values($used));
+        $attempt->timemodified = time();
+        $DB->update_record('agon_attempt', $attempt);
+
+        return $hint;
+    }
+
+    /**
      * A web-service-friendly summary of an attempt (no answers).
      *
      * @param stdClass $attempt
@@ -195,31 +244,6 @@ class attempt {
             'scorecoding' => (float)$attempt->scorecoding,
             'score' => (float)$attempt->score,
             'submittedgames' => self::submitted_games($attempt),
-        ];
-    }
-
-    /**
-     * Decode the saved game content (which holds the answers) for an instance.
-     *
-     * @param int $agonid The agon instance id.
-     * @return array{crossword: array, questions: array, coding: array}
-     */
-    public static function load_content(int $agonid): array {
-        global $DB;
-
-        $agon = $DB->get_record('agon', ['id' => $agonid], '*', MUST_EXIST);
-        $decode = function ($json) {
-            $value = json_decode((string)$json, true);
-            return is_array($value) ? $value : [];
-        };
-        $cw = $decode($agon->contentcrossword);
-        $q = $decode($agon->contentquestion);
-        $code = $decode($agon->contentcoding);
-
-        return [
-            'crossword' => ['words' => $cw['words'] ?? []],
-            'questions' => $q['questions'] ?? [],
-            'coding' => ['sequences' => $code['sequences'] ?? []],
         ];
     }
 }

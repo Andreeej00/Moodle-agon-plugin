@@ -49,4 +49,12 @@ $functions = [
         'ajax' => true,
         'capabilities' => 'mod/agon:play',
     ],
+    'mod_agon_get_hint' => [
+        'classname' => 'mod_agon\external\get_hint',
+        'methodname' => 'execute',
+        'description' => 'Spend the attempt\'s one hint for a game.',
+        'type' => 'write',
+        'ajax' => true,
+        'capabilities' => 'mod/agon:play',
+    ],
 ];

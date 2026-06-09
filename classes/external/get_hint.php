@@ -21,16 +21,15 @@ use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
 use mod_agon\local\attempt;
-use mod_agon\local\content;
 
 /**
- * Web service: grade one game's submission server-side.
+ * Web service: spend the attempt's one hint for a game.
  *
  * @package     mod_agon
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class submit_game extends external_api {
+class get_hint extends external_api {
     use returns_attempt_summary;
 
     /**
@@ -42,37 +41,33 @@ class submit_game extends external_api {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module id of the agon activity'),
             'game' => new external_value(PARAM_ALPHA, 'Game key: crossword, question or coding'),
-            'payload' => new external_value(PARAM_RAW, 'JSON-encoded student input for the game (no answers)'),
+            'payload' => new external_value(PARAM_RAW, 'JSON of current progress, e.g. {filled:[...]}', VALUE_DEFAULT, '{}'),
         ]);
     }
 
     /**
-     * Grade the submission and return the updated attempt summary.
+     * Return one hint for the game (server enforces one per game per attempt).
      *
      * @param int $cmid Course module id.
      * @param string $game Game key.
-     * @param string $payload JSON-encoded student input.
-     * @return array Attempt summary.
+     * @param string $payload JSON progress.
+     * @return array {hint: JSON}.
      */
-    public static function execute(int $cmid, string $game, string $payload): array {
+    public static function execute(int $cmid, string $game, string $payload = '{}'): array {
         global $USER;
 
         $params = self::validate_parameters(self::execute_parameters(),
             ['cmid' => $cmid, 'game' => $game, 'payload' => $payload]);
         $cm = self::setup_play_context($params['cmid']);
 
-        $input = json_decode($params['payload'], true);
-        if (!is_array($input)) {
-            $input = [];
+        $progress = json_decode($params['payload'], true);
+        if (!is_array($progress)) {
+            $progress = [];
         }
 
         $attempt = attempt::start($cm->instance, $USER->id);
-        attempt::submit_game($attempt, $params['game'], $input);
-
-        // Reveal that game's answers + explanation now it is over (anti-cheat-safe).
-        $summary = attempt::summary(attempt::get($attempt->id));
-        $summary['feedback'] = json_encode(content::feedback($cm->instance, $params['game']));
-        return $summary;
+        $hint = attempt::use_hint($attempt, $params['game'], $progress);
+        return ['hint' => json_encode($hint)];
     }
 
     /**
@@ -81,6 +76,8 @@ class submit_game extends external_api {
      * @return external_single_structure
      */
     public static function execute_returns(): external_single_structure {
-        return self::attempt_summary_structure();
+        return new external_single_structure([
+            'hint' => new external_value(PARAM_RAW, 'JSON-encoded hint for the game'),
+        ]);
     }
 }

@@ -90,5 +90,15 @@ function xmldb_agon_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026060901, 'agon');
     }
 
+    if ($oldversion < 2026060902) {
+        // Phase 2 (4d): track the one hint used per game (server-enforced).
+        $table = new xmldb_table('agon_attempt');
+        $field = new xmldb_field('hintsused', XMLDB_TYPE_TEXT, null, null, null, null, null, 'submittedgames');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_mod_savepoint(true, 2026060902, 'agon');
+    }
+
     return true;
 }

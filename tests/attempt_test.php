@@ -147,4 +147,14 @@ final class attempt_test extends \advanced_testcase {
         $this->expectException(\moodle_exception::class);
         attempt::submit_game($a, 'question', ['selected' => 0]);
     }
+
+    public function test_hint_is_once_per_game(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        $hint = attempt::use_hint($a, 'question');
+        $this->assertSame('question', $hint['type']);
+        $this->assertEquals(['question'], attempt::hints_used(attempt::get($a->id)));
+        $this->expectException(\moodle_exception::class);
+        attempt::use_hint($a, 'question');
+    }
 }
