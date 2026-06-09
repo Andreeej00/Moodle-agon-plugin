@@ -138,4 +138,13 @@ final class attempt_test extends \advanced_testcase {
         $this->expectException(\moodle_exception::class);
         attempt::submit_game($a, 'question', ['selected' => 1]);
     }
+
+    public function test_cannot_resubmit_a_game(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        attempt::submit_game($a, 'question', ['selected' => 1]);
+        $this->assertEquals(['question'], attempt::submitted_games(attempt::get($a->id)));
+        $this->expectException(\moodle_exception::class);
+        attempt::submit_game($a, 'question', ['selected' => 0]);
+    }
 }

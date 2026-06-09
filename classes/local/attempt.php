@@ -35,6 +35,8 @@ class attempt {
     const STATE_INPROGRESS = 'inprogress';
     /** @var string The run is over; scores are final. */
     const STATE_FINISHED = 'finished';
+    /** @var string[] The games an attempt may submit. */
+    const GAMES = ['crossword', 'question', 'coding'];
 
     /**
      * Return the student's attempt for this instance, creating it on first call.
@@ -63,9 +65,21 @@ class attempt {
             'scorequestion' => 0,
             'scorecoding' => 0,
             'timemodified' => $now,
+            'submittedgames' => '[]',
         ];
         $record->id = $DB->insert_record('agon_attempt', $record);
         return $record;
+    }
+
+    /**
+     * Reload an attempt row by id.
+     *
+     * @param int $attemptid
+     * @return stdClass
+     */
+    public static function get(int $attemptid): stdClass {
+        global $DB;
+        return $DB->get_record('agon_attempt', ['id' => $attemptid], '*', MUST_EXIST);
     }
 
     /**
@@ -79,10 +93,18 @@ class attempt {
     public static function submit_game(stdClass $attempt, string $game, array $payload): float {
         global $DB;
 
+        if (!in_array($game, self::GAMES, true)) {
+            throw new \coding_exception('Unknown agon game: ' . $game);
+        }
+
         // Reload so totals are computed from the authoritative row, not a stale object.
-        $attempt = $DB->get_record('agon_attempt', ['id' => $attempt->id], '*', MUST_EXIST);
+        $attempt = self::get($attempt->id);
         if ($attempt->state !== self::STATE_INPROGRESS) {
             throw new \moodle_exception('attemptnotinprogress', 'mod_agon');
+        }
+        $submitted = self::submitted_games($attempt);
+        if (in_array($game, $submitted, true)) {
+            throw new \moodle_exception('gamealreadysubmitted', 'mod_agon');
         }
 
         $content = self::load_content($attempt->agonid);
@@ -107,19 +129,20 @@ class attempt {
                 $field = 'scorequestion';
                 break;
             case 'coding':
+            default:
                 $sequences = $content['coding']['sequences'];
                 $answers = (array)($payload['answers'] ?? []);
                 $score = scoring::score_coding($sequences, $answers);
                 $field = 'scorecoding';
                 break;
-            default:
-                throw new \coding_exception('Unknown agon game: ' . $game);
         }
 
+        $submitted[] = $game;
         $attempt->$field = $score;
         $attempt->score = (float)$attempt->scorecrossword
             + (float)$attempt->scorequestion
             + (float)$attempt->scorecoding;
+        $attempt->submittedgames = json_encode(array_values($submitted));
         $attempt->timemodified = time();
         $DB->update_record('agon_attempt', $attempt);
 
@@ -135,13 +158,44 @@ class attempt {
     public static function finish(stdClass $attempt): stdClass {
         global $DB;
 
-        $attempt = $DB->get_record('agon_attempt', ['id' => $attempt->id], '*', MUST_EXIST);
+        $attempt = self::get($attempt->id);
         $attempt->state = self::STATE_FINISHED;
         $attempt->timefinish = time();
         $attempt->timemodified = $attempt->timefinish;
         $DB->update_record('agon_attempt', $attempt);
 
         return $attempt;
+    }
+
+    /**
+     * The list of games already submitted in this attempt.
+     *
+     * @param stdClass $attempt
+     * @return string[]
+     */
+    public static function submitted_games(stdClass $attempt): array {
+        $list = json_decode((string)($attempt->submittedgames ?? ''), true);
+        return is_array($list) ? array_values($list) : [];
+    }
+
+    /**
+     * A web-service-friendly summary of an attempt (no answers).
+     *
+     * @param stdClass $attempt
+     * @return array
+     */
+    public static function summary(stdClass $attempt): array {
+        return [
+            'attemptid' => (int)$attempt->id,
+            'state' => $attempt->state,
+            'timestart' => (int)$attempt->timestart,
+            'timefinish' => (int)$attempt->timefinish,
+            'scorecrossword' => (float)$attempt->scorecrossword,
+            'scorequestion' => (float)$attempt->scorequestion,
+            'scorecoding' => (float)$attempt->scorecoding,
+            'score' => (float)$attempt->score,
+            'submittedgames' => self::submitted_games($attempt),
+        ];
     }
 
     /**

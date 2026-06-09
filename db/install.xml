@@ -38,6 +38,7 @@
         <FIELD NAME="scorequestion" TYPE="number" LENGTH="10" DECIMALS="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Weekly question game score."/>
         <FIELD NAME="scorecoding" TYPE="number" LENGTH="10" DECIMALS="5" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Coding game score."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="When the attempt row was last modified."/>
+        <FIELD NAME="submittedgames" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="JSON array of game keys already submitted (one submission per game)."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

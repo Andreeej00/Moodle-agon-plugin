@@ -25,11 +25,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['agon:manage'] = 'Configure and monitor Agon activities';
+$string['agon:play'] = 'Play Agon games';
+$string['agon:viewleaderboard'] = 'View the Agon leaderboard';
 $string['agonfieldset'] = 'General settings';
 $string['agonname'] = 'Agon name';
 $string['agonname_help'] = 'This is the name of this Agon activity as it appears on the course page.';
 $string['agonsettings'] = 'Settings';
 $string['attemptnotinprogress'] = 'This attempt is not in progress, so it cannot be changed.';
+$string['gamealreadysubmitted'] = 'This game has already been submitted in this attempt.';
 $string['missingidandcmid'] = 'You must specify a course_module ID or an instance ID.';
 $string['modulename'] = 'Agon';
 $string['modulename_help'] = 'The Agon activity turns your course terms into competitive minigames — a crossword, a timed reveal-and-answer round, and a code-application challenge — so students revise by playing. Results feed a class leaderboard.';

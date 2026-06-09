@@ -80,5 +80,15 @@ function xmldb_agon_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026060900, 'agon');
     }
 
+    if ($oldversion < 2026060901) {
+        // Phase 2 (4b): track which games an attempt has already submitted.
+        $table = new xmldb_table('agon_attempt');
+        $field = new xmldb_field('submittedgames', XMLDB_TYPE_TEXT, null, null, null, null, null, 'timemodified');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_mod_savepoint(true, 2026060901, 'agon');
+    }
+
     return true;
 }
