@@ -72,7 +72,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             steps.forEach(function(st, i) { st.stages.forEach(function(sg) { stepOf[sg] = i; }); });
 
             var idx = 0, userNavigated = false, finished = false;
-            var submitted = {}, hintUsed = {}, scores = {}, cwMap = {}, feedback = {};
+            var submitted = {}, submitting = {}, hintUsed = {}, scores = {}, cwMap = {}, feedback = {};
             var isGame = function(n) { return n === 'crossword' || n === 'question' || n === 'coding'; };
 
             // ---------- timed games: Start gate + countdown ----------
@@ -183,7 +183,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                     if (cur === 'crossword') { payload.filled = filledCrossword(); }
                     if (cur === 'coding') { payload.filled = filledCoding(); }
                     call('mod_agon_get_hint', {cmid: CMID, game: cur, payload: JSON.stringify(payload)})
-                        .then(function(res) { applyHint(cur, JSON.parse(res.hint)); return res; })
+                        .then(function(res) {
+                            // If the hint revealed nothing (e.g. grid already full), give it back.
+                            if (!applyHint(cur, JSON.parse(res.hint))) { hintUsed[cur] = false; updateHint(cur); }
+                            return res;
+                        })
                         .catch(function(err) { hintUsed[cur] = false; updateHint(cur); Notification.exception(err); });
                 });
             }
@@ -192,8 +196,10 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                     cwMap[hint.rc].input.value = hint.letter;
                     if (cwMap[hint.rc].cell) { cwMap[hint.rc].cell.classList.add('is-hint'); }
                     announce('Hint: revealed the letter ' + hint.letter + '.');
+                    return true;
                 } else if (cur === 'question') {
                     if ($('q-hint')) { $('q-hint').innerHTML = '<b>Hint.</b> ' + esc(hint.explanation || 'No hint available.'); $('q-hint').hidden = false; }
+                    return true;
                 } else if (cur === 'coding' && typeof hint.seq !== 'undefined') {
                     var host = $('coding');
                     var bl = host && host.querySelector('.blank[data-seq="' + hint.seq + '"][data-b="' + hint.b + '"]');
@@ -202,7 +208,9 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                         if (ch.dataset.v === hint.value && !ch.classList.contains('is-used')) { ch.classList.add('is-cued'); }
                     });
                     announce('Hint: the next blank takes ' + hint.value + '.');
+                    return true;
                 }
+                return false;
             };
 
             // ---------- header + stepper ----------
@@ -245,10 +253,13 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 return {answers: answers};
             };
             var doSubmit = function(cur) {
-                if (submitted[cur]) { return; }
+                // Guard synchronously: the countdown auto-submit and a click can race.
+                if (submitted[cur] || submitting[cur]) { return; }
+                submitting[cur] = true;
                 if ($('cta')) { $('cta').disabled = true; }
                 call('mod_agon_submit_game', {cmid: CMID, game: cur, payload: JSON.stringify(collect(cur))})
                     .then(function(resp) {
+                        submitting[cur] = false;
                         submitted[cur] = true;
                         stopTimer();
                         scores.crossword = resp.scorecrossword;
@@ -263,7 +274,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                         updateCta(cur); updateHint(cur);
                         return resp;
                     })
-                    .catch(function(err) { if ($('cta')) { $('cta').disabled = false; } Notification.exception(err); });
+                    .catch(function(err) {
+                        submitting[cur] = false;
+                        if ($('cta')) { $('cta').disabled = false; }
+                        Notification.exception(err);
+                    });
             };
 
             // ---------- CROSSWORD ----------
@@ -527,15 +542,28 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             // ---------- boot: open or resume the attempt ----------
             call('mod_agon_start_attempt', {cmid: CMID})
                 .then(function(resp) {
+                    var sub = resp.submittedgames || [];
+                    scores.crossword = resp.scorecrossword;
+                    scores.question = resp.scorequestion;
+                    scores.coding = resp.scorecoding;
+                    sub.forEach(function(g) { submitted[g] = true; });
+
                     if (resp.state === 'finished') {
                         finished = true;
-                        scores.crossword = resp.scorecrossword;
-                        scores.question = resp.scorequestion;
-                        scores.coding = resp.scorecoding;
-                        (resp.submittedgames || []).forEach(function(g) { submitted[g] = true; });
-                        idx = flow.length - 1;
                         userNavigated = true;
+                        idx = flow.length - 1;
                         show('results');
+                    } else if (sub.length > 0) {
+                        // Resume an in-progress run: skip submitted games, land on the first
+                        // unfinished one (or the results if every game is already in).
+                        var target = -1;
+                        for (var i = 1; i < flow.length; i++) {
+                            if (isGame(flow[i]) && !submitted[flow[i]]) { target = i; break; }
+                        }
+                        if (target === -1) { target = flow.length - 1; }
+                        userNavigated = true;
+                        idx = target;
+                        show(flow[idx]);
                     } else {
                         show('start');
                     }

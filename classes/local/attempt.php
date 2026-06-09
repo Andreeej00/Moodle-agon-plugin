@@ -89,9 +89,9 @@ class attempt {
      * @param stdClass $attempt The attempt (only its id is trusted; the row is reloaded).
      * @param string $game One of crossword|question|coding.
      * @param array $payload The student's input for that game (no answers).
-     * @return float The per-game score that was recorded.
+     * @return array{score: float, feedback: array} The recorded score and the reveal-on-submit feedback.
      */
-    public static function submit_game(stdClass $attempt, string $game, array $payload): float {
+    public static function submit_game(stdClass $attempt, string $game, array $payload): array {
         global $DB;
 
         if (!in_array($game, self::GAMES, true)) {
@@ -147,7 +147,8 @@ class attempt {
         $attempt->timemodified = time();
         $DB->update_record('agon_attempt', $attempt);
 
-        return $score;
+        // Feedback from the content we already loaded (no extra read).
+        return ['score' => $score, 'feedback' => content::feedback_from($content, $game)];
     }
 
     /**
@@ -160,6 +161,25 @@ class attempt {
         global $DB;
 
         $attempt = self::get($attempt->id);
+        if ($attempt->state === self::STATE_FINISHED) {
+            return $attempt;
+        }
+
+        // Every enabled game must have been submitted before the run can finish.
+        $agon = $DB->get_record('agon', ['id' => $attempt->agonid],
+            'gamecrossword, gamequestion, gamecoding', MUST_EXIST);
+        $enabled = array_filter([
+            'crossword' => $agon->gamecrossword,
+            'question' => $agon->gamequestion,
+            'coding' => $agon->gamecoding,
+        ]);
+        $submitted = self::submitted_games($attempt);
+        foreach (array_keys($enabled) as $game) {
+            if (!in_array($game, $submitted, true)) {
+                throw new \moodle_exception('attemptincomplete', 'mod_agon');
+            }
+        }
+
         $attempt->state = self::STATE_FINISHED;
         $attempt->timefinish = time();
         $attempt->timemodified = $attempt->timefinish;
@@ -219,10 +239,16 @@ class attempt {
 
         $hint = content::hint($attempt->agonid, $game, $payload);
 
-        $used[] = $game;
-        $attempt->hintsused = json_encode(array_values($used));
-        $attempt->timemodified = time();
-        $DB->update_record('agon_attempt', $attempt);
+        // Only spend the hint if it actually revealed something: a crossword with
+        // every cell filled, or coding with no blank left, yields nothing — so the
+        // student keeps their hint rather than wasting it.
+        $usable = $game === 'question' || isset($hint['rc']) || isset($hint['seq']);
+        if ($usable) {
+            $used[] = $game;
+            $attempt->hintsused = json_encode(array_values($used));
+            $attempt->timemodified = time();
+            $DB->update_record('agon_attempt', $attempt);
+        }
 
         return $hint;
     }

@@ -30,7 +30,7 @@ use mod_agon\local\attempt;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class get_hint extends external_api {
-    use returns_attempt_summary;
+    use uses_agon_context;
 
     /**
      * Parameters.

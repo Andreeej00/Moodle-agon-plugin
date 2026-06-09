@@ -65,11 +65,10 @@ $enabledgames = [
     'coding' => (bool)$moduleinstance->gamecoding,
 ];
 
-// Answer-free content (subject/week + renderable game data with no answers).
-$public = \mod_agon\local\content::public_for_render($moduleinstance->id);
-$meta = $public['meta'];
-
 if ($view === 'student') {
+    // Answer-free content: subject/week + renderable game data with no answers.
+    $public = \mod_agon\local\content::public_for_render($moduleinstance->id);
+    $meta = $public['meta'];
     $agondata = [
         'meta' => $meta,
         'enabledGames' => $enabledgames,
@@ -79,6 +78,8 @@ if ($view === 'student') {
         // The leaderboard is fetched live (mod_agon_get_leaderboard) once the run finishes.
     ];
 } else {
+    // The monitor only needs the subject/week heading, not the game data.
+    $meta = \mod_agon\local\content::meta($moduleinstance->id);
     $agondata = [
         'meta' => $meta,
         'enabledGames' => $enabledgames,

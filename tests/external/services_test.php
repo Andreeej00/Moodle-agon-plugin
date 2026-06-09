@@ -42,8 +42,11 @@ final class services_test extends \advanced_testcase {
         $question = json_encode(['questions' => [
             ['question' => 'Pick B', 'options' => ['A', 'B', 'C'], 'correct' => 1, 'explanation' => 'B.'],
         ]]);
+        // Only the question game is enabled, so finishing needs just that one submission.
         $this->agon = $this->getDataGenerator()->create_module('agon', [
             'course' => $this->course->id,
+            'gamecrossword' => 0,
+            'gamecoding' => 0,
             'contentquestion' => $question,
         ]);
     }

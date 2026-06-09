@@ -30,6 +30,7 @@ use mod_agon\local\attempt;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class finish_attempt extends external_api {
+    use uses_agon_context;
     use returns_attempt_summary;
 
     /**

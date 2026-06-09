@@ -139,6 +139,7 @@
 .agon .lb .who{flex:1;font-weight:600}
 .agon .lb .pts{font-weight:700;color:var(--accent)}
 .agon .lb li.is-me{background:var(--sel);border-radius:10px}
+.agon .lb li.lb-empty{justify-content:center;color:var(--muted);font-style:italic;border-bottom:none}
 
 /* professor (monitor) */
 .agon .adm-embed{max-width:880px;margin:0 auto}

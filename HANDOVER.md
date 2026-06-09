@@ -50,7 +50,8 @@ To see the **student** game, log in as `agonstu` (an incognito window is cleanes
 
 - **Bind-mount sync lag.** After adding a **new** file/folder, PHP can't see it until `bin/moodle-docker-compose restart webserver`. Editing existing files is *usually* instant, but the mount occasionally lags on content too — **if an edit doesn't show up, restart the webserver** and re-check (`exec -T webserver grep -c <marker> <file>`). New classes also want `find /var/www/moodledata -name 'core_component*.php' -delete` then `php admin/cli/purge_caches.php`.
 - After editing **templates or CSS**, run `... exec -T webserver php admin/cli/purge_caches.php`.
-- **JS** is cache-busted by file mtime (`view.php`), so a normal browser refresh picks up edits.
+- **Student JS is now an AMD module** (`amd/src/player.js`). The container has no grunt, so after editing the source, mirror it to the build (`cp amd/src/player.js amd/build/player.min.js`) and run `php admin/cli/purge_caches.php`. (The teacher monitor still uses plain `js/professor.js`, cache-busted by file mtime in `view.php`.)
+- **One attempt per student is enforced.** To replay as a test student, clear the row(s): `exec -T webserver php -r 'define("CLI_SCRIPT",1);require("/var/www/html/config.php");$DB->delete_records("agon_attempt");'` (or scope by `agonid`/`userid`).
 - `$PAGE->requires->js($url, $inhead)` — second arg **must be `false`** (footer), so the script runs after the inline `window.AGON` data. `true` = `<head>` = script runs before the data and silently bails.
 - The `agon` table only stores fields whose **column name matches** the form field (Moodle drops the rest), so new settings need a new column (`db/install.xml` + `db/upgrade.php` + a version bump in `version.php`, then `php admin/cli/upgrade.php`).
 

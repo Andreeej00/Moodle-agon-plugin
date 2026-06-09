@@ -29,31 +29,6 @@ use core_external\external_value;
  */
 trait returns_attempt_summary {
     /**
-     * Resolve the activity from a course module id and require a capability.
-     *
-     * @param int $cmid Course module id of the agon activity.
-     * @param string $capability The capability the caller must hold in the module context.
-     * @return \cm_info The course module (its ->instance is the agon id).
-     */
-    protected static function require_cm(int $cmid, string $capability): \cm_info {
-        [, $cm] = get_course_and_cm_from_cmid($cmid, 'agon');
-        $context = \context_module::instance($cm->id);
-        self::validate_context($context);
-        require_capability($capability, $context);
-        return $cm;
-    }
-
-    /**
-     * Resolve the activity and require play access.
-     *
-     * @param int $cmid Course module id of the agon activity.
-     * @return \cm_info The course module (its ->instance is the agon id).
-     */
-    protected static function setup_play_context(int $cmid): \cm_info {
-        return self::require_cm($cmid, 'mod/agon:play');
-    }
-
-    /**
      * The return structure shared by start/submit/finish: an attempt summary.
      *
      * @return external_single_structure

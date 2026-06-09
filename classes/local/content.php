@@ -111,6 +111,16 @@ class content {
     }
 
     /**
+     * Subject/week metadata for an instance (no answers).
+     *
+     * @param int $agonid
+     * @return array{week: mixed, topic: string, subject: string}
+     */
+    public static function meta(int $agonid): array {
+        return self::raw($agonid)['meta'];
+    }
+
+    /**
      * Answers + explanation for a game, revealed after the student submits it.
      *
      * @param int $agonid
@@ -118,8 +128,20 @@ class content {
      * @return array
      */
     public static function feedback(int $agonid, string $game): array {
-        $raw = self::raw($agonid);
+        return self::feedback_from(self::raw($agonid), $game);
+    }
 
+    /**
+     * Answers + explanation for a game, from already-loaded raw content.
+     *
+     * Lets a caller that already holds the raw content (e.g. the scoring path)
+     * build the reveal-on-submit feedback without re-reading the database.
+     *
+     * @param array $raw Output of {@see raw()}.
+     * @param string $game crossword|question|coding
+     * @return array
+     */
+    public static function feedback_from(array $raw, string $game): array {
         switch ($game) {
             case 'crossword':
                 return ['solution' => scoring::crossword_solution($raw['crossword']['words'])];

@@ -74,7 +74,7 @@ final class attempt_test extends \advanced_testcase {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);
 
-        $this->assertEqualsWithDelta(1.0, attempt::submit_game($a, 'question', ['selected' => 1]), 1e-9);
+        $this->assertEqualsWithDelta(1.0, attempt::submit_game($a, 'question', ['selected' => 1])['score'], 1e-9);
         $row = $DB->get_record('agon_attempt', ['id' => $a->id]);
         $this->assertEqualsWithDelta(1.0, (float)$row->scorequestion, 1e-9);
         $this->assertEqualsWithDelta(1.0, (float)$row->score, 1e-9);
@@ -83,16 +83,16 @@ final class attempt_test extends \advanced_testcase {
     public function test_submit_question_wrong(): void {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);
-        $this->assertEqualsWithDelta(0.0, attempt::submit_game($a, 'question', ['selected' => 0]), 1e-9);
+        $this->assertEqualsWithDelta(0.0, attempt::submit_game($a, 'question', ['selected' => 0])['score'], 1e-9);
     }
 
     public function test_submit_coding_full_and_partial(): void {
         $a = attempt::start($this->agon->id, $this->getDataGenerator()->create_user()->id);
-        $this->assertEqualsWithDelta(1.0, attempt::submit_game($a, 'coding', ['answers' => [['x'], ['z']]]), 1e-9);
+        $this->assertEqualsWithDelta(1.0, attempt::submit_game($a, 'coding', ['answers' => [['x'], ['z']]])['score'], 1e-9);
 
         $b = attempt::start($this->agon->id, $this->getDataGenerator()->create_user()->id);
         // First sequence right, second wrong → 0.5.
-        $this->assertEqualsWithDelta(0.5, attempt::submit_game($b, 'coding', ['answers' => [['x'], ['w']]]), 1e-9);
+        $this->assertEqualsWithDelta(0.5, attempt::submit_game($b, 'coding', ['answers' => [['x'], ['w']]])['score'], 1e-9);
     }
 
     public function test_submit_crossword_full_solves_take_finish_rank(): void {
@@ -100,7 +100,7 @@ final class attempt_test extends \advanced_testcase {
         for ($i = 0; $i < 4; $i++) {
             $user = $this->getDataGenerator()->create_user();
             $a = attempt::start($this->agon->id, $user->id);
-            $scores[] = attempt::submit_game($a, 'crossword', ['entries' => $this->full_crossword()]);
+            $scores[] = attempt::submit_game($a, 'crossword', ['entries' => $this->full_crossword()])['score'];
         }
         // First three full solvers = 1.0, fourth = 0.75.
         $this->assertEqualsWithDelta([1.0, 1.0, 1.0, 0.75], $scores, 1e-9);
@@ -109,7 +109,7 @@ final class attempt_test extends \advanced_testcase {
     public function test_submit_crossword_partial_is_capped(): void {
         $a = attempt::start($this->agon->id, $this->getDataGenerator()->create_user()->id);
         // 2 of 5 letters correct → 0.4 × 0.5 = 0.2.
-        $score = attempt::submit_game($a, 'crossword', ['entries' => ['0-0' => 'T', '0-1' => 'O']]);
+        $score = attempt::submit_game($a, 'crossword', ['entries' => ['0-0' => 'T', '0-1' => 'O']])['score'];
         $this->assertEqualsWithDelta(0.2, $score, 1e-9);
     }
 
@@ -134,9 +134,33 @@ final class attempt_test extends \advanced_testcase {
     public function test_cannot_submit_after_finish(): void {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);
+        attempt::submit_game($a, 'crossword', ['entries' => $this->full_crossword()]);
+        attempt::submit_game($a, 'question', ['selected' => 1]);
+        attempt::submit_game($a, 'coding', ['answers' => [['x'], ['z']]]);
         attempt::finish($a);
         $this->expectException(\moodle_exception::class);
         attempt::submit_game($a, 'question', ['selected' => 1]);
+    }
+
+    public function test_finish_requires_every_enabled_game(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        attempt::submit_game($a, 'question', ['selected' => 1]); // crossword + coding still missing.
+        $this->expectException(\moodle_exception::class);
+        attempt::finish($a);
+    }
+
+    public function test_unusable_hint_is_not_spent(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        // Every crossword cell already filled → no cell to reveal, so the hint is refunded.
+        $hint = attempt::use_hint($a, 'crossword', ['filled' => array_keys($this->full_crossword())]);
+        $this->assertArrayNotHasKey('rc', $hint);
+        $this->assertSame([], attempt::hints_used(attempt::get($a->id)));
+        // It can still be used afterwards: a real cell is revealed and the hint is now spent.
+        $again = attempt::use_hint($a, 'crossword', ['filled' => ['0-0']]);
+        $this->assertArrayHasKey('letter', $again);
+        $this->assertSame(['crossword'], attempt::hints_used(attempt::get($a->id)));
     }
 
     public function test_cannot_resubmit_a_game(): void {

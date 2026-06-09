@@ -21,7 +21,6 @@ use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
 use mod_agon\local\attempt;
-use mod_agon\local\content;
 
 /**
  * Web service: grade one game's submission server-side.
@@ -31,6 +30,7 @@ use mod_agon\local\content;
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class submit_game extends external_api {
+    use uses_agon_context;
     use returns_attempt_summary;
 
     /**
@@ -67,11 +67,11 @@ class submit_game extends external_api {
         }
 
         $attempt = attempt::start($cm->instance, $USER->id);
-        attempt::submit_game($attempt, $params['game'], $input);
+        $result = attempt::submit_game($attempt, $params['game'], $input);
 
-        // Reveal that game's answers + explanation now it is over (anti-cheat-safe).
+        // The manager built the feedback from the content it already loaded.
         $summary = attempt::summary(attempt::get($attempt->id));
-        $summary['feedback'] = json_encode(content::feedback($cm->instance, $params['game']));
+        $summary['feedback'] = json_encode($result['feedback']);
         return $summary;
     }
 
