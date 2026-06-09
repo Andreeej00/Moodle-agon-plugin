@@ -25,6 +25,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['agon:addinstance'] = 'Add a new Agon activity';
 $string['agon:manage'] = 'Configure and monitor Agon activities';
 $string['agon:play'] = 'Play Agon games';
 $string['agon:viewleaderboard'] = 'View the Agon leaderboard';
