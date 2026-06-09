@@ -48,6 +48,11 @@ class content {
         $code = $decode($agon->contentcoding);
 
         return [
+            'meta' => [
+                'week' => $cw['week'] ?? ($q['week'] ?? ($code['week'] ?? '')),
+                'topic' => $cw['topic'] ?? ($q['topic'] ?? ''),
+                'subject' => $cw['subject'] ?? ($cw['subject_code'] ?? ($q['subject_code'] ?? '')),
+            ],
             'crossword' => ['words' => $cw['words'] ?? []],
             'questions' => $q['questions'] ?? [],
             'coding' => ['sequences' => $code['sequences'] ?? []],
@@ -98,6 +103,7 @@ class content {
         }
 
         return [
+            'meta' => $raw['meta'],
             'crossword' => ['words' => $words],
             'questions' => $questions,
             'coding' => ['sequences' => $sequences],
