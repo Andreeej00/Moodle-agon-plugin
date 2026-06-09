@@ -18,10 +18,13 @@ Practical notes for anyone picking up or running this project. For the *what/why
   - per-game **hints** (letter / explanation / blank cue), per-screen **feedback**, screen **transitions**, animated **score count-up**, tap-friendly UI.
 - **Teacher monitor** view (attempts + leaderboard) instead of playing.
 
-**Not real yet (Phase 2 — next):**
-- **Scoring / attempts / leaderboard / grades are placeholders** — feedback + score are computed **client-side** in `student.js` (which also means the answers sit in `window.AGON`). Real scoring must move server-side.
-- Timers run client-side (countdown + auto-submit) but aren't **server-enforced**; no per-attempt randomization; one-attempt not enforced.
-- `db/access.php` capabilities, privacy-provider update (will store personal data), backup/restore — not done.
+**Real now (Phase 2 progress, 2026-06-10):**
+- **Scoring, attempts, hints and the course leaderboard are server-side** — `agon_attempt` table, scoring engine, web services, AMD player (`amd/src/player.js`). Answers never reach the browser; one attempt + one hint per game enforced; partial crossword = fraction × 0.5 capped at 0.49.
+- `db/access.php` capabilities and a real privacy provider (export/delete) are in.
+
+**Still pending (Phase 2 tail):**
+- Gradebook export (plan §8 step 6 — also adds the missing `grade` column).
+- Server-enforced timers + per-attempt question randomization (step 9, incl. two noted rare races); backup/restore (Phase 3).
 - Accessibility is **in place** (keyboard-operable controls, ARIA labels + live announcements, focus management, focus rings, WCAG-AA contrast). Native drag is desktop-only — the keyboard/tap path covers it. Still worth a real VoiceOver pass to confirm.
 
 ## 3. Run it locally (moodle-docker)

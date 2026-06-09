@@ -105,4 +105,24 @@ final class content_test extends \advanced_testcase {
         $this->assertSame(0, $hint['b']);
         $this->assertSame('x', $hint['value']);
     }
+
+    public function test_playable_games_requires_toggle_and_content(): void {
+        $agon = (object)[
+            // Enabled but empty content → not playable.
+            'gamecrossword' => 1, 'contentcrossword' => '',
+            // Enabled with real content → playable.
+            'gamequestion' => 1, 'contentquestion' => json_encode(['questions' => [['question' => 'Q']]]),
+            // Real content but toggled off → not playable.
+            'gamecoding' => 0, 'contentcoding' => json_encode(['sequences' => [['code' => 'x = ____']]]),
+        ];
+        $this->assertSame(
+            ['crossword' => false, 'question' => true, 'coding' => false],
+            content::playable_games($agon)
+        );
+
+        // Invalid JSON behaves like empty content.
+        $agon->contentcrossword = '{not json';
+        $agon->gamecrossword = 1;
+        $this->assertFalse(content::playable_games($agon)['crossword']);
+    }
 }

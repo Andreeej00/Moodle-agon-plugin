@@ -165,16 +165,11 @@ class attempt {
             return $attempt;
         }
 
-        // Every enabled game must have been submitted before the run can finish.
-        $agon = $DB->get_record('agon', ['id' => $attempt->agonid],
-            'gamecrossword, gamequestion, gamecoding', MUST_EXIST);
-        $enabled = array_filter([
-            'crossword' => $agon->gamecrossword,
-            'question' => $agon->gamequestion,
-            'coding' => $agon->gamecoding,
-        ]);
+        // Every playable game must have been submitted before the run can finish.
+        $agon = $DB->get_record('agon', ['id' => $attempt->agonid], '*', MUST_EXIST);
+        $playable = array_filter(content::playable_games($agon));
         $submitted = self::submitted_games($attempt);
-        foreach (array_keys($enabled) as $game) {
+        foreach (array_keys($playable) as $game) {
             if (!in_array($game, $submitted, true)) {
                 throw new \moodle_exception('attemptincomplete', 'mod_agon');
             }

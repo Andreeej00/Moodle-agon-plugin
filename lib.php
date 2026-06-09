@@ -109,13 +109,9 @@ function agon_delete_instance($id) {
  * @return bool True if the scale is used by the given mod_agon instance.
  */
 function agon_scale_used($moduleinstanceid, $scaleid) {
-    global $DB;
-
-    if ($scaleid && $DB->record_exists('agon', ['id' => $moduleinstanceid, 'grade' => -$scaleid])) {
-        return true;
-    } else {
-        return false;
-    }
+    // Scales cannot be selected yet: the agon table has no grade column until
+    // the gradebook step lands (plan §8 step 6), so no instance can use one.
+    return false;
 }
 
 /**
@@ -127,13 +123,8 @@ function agon_scale_used($moduleinstanceid, $scaleid) {
  * @return bool True if the scale is used by any mod_agon instance.
  */
 function agon_scale_used_anywhere($scaleid) {
-    global $DB;
-
-    if ($scaleid && $DB->record_exists('agon', ['grade' => -$scaleid])) {
-        return true;
-    } else {
-        return false;
-    }
+    // See agon_scale_used(): no grade column yet, so no scale can be in use.
+    return false;
 }
 
 /**
@@ -149,17 +140,20 @@ function agon_grade_item_update($moduleinstance, $reset = false) {
     global $CFG;
     require_once($CFG->libdir . '/gradelib.php');
 
+    // The agon table has no grade column until plan §8 step 6 lands.
+    $grade = $moduleinstance->grade ?? 0;
+
     $item = [];
     $item['itemname'] = clean_param($moduleinstance->name, PARAM_NOTAGS);
     $item['gradetype'] = GRADE_TYPE_VALUE;
 
-    if ($moduleinstance->grade > 0) {
+    if ($grade > 0) {
         $item['gradetype'] = GRADE_TYPE_VALUE;
-        $item['grademax']  = $moduleinstance->grade;
+        $item['grademax']  = $grade;
         $item['grademin']  = 0;
-    } else if ($moduleinstance->grade < 0) {
+    } else if ($grade < 0) {
         $item['gradetype'] = GRADE_TYPE_SCALE;
-        $item['scaleid']   = -$moduleinstance->grade;
+        $item['scaleid']   = -$grade;
     } else {
         $item['gradetype'] = GRADE_TYPE_NONE;
     }

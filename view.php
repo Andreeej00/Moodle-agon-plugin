@@ -59,11 +59,17 @@ $PAGE->set_context($modulecontext);
 $canmanage = has_capability('moodle/course:manageactivities', $modulecontext);
 $view = $canmanage ? 'professor' : 'student';
 
-$enabledgames = [
-    'crossword' => (bool)$moduleinstance->gamecrossword,
-    'question' => (bool)$moduleinstance->gamequestion,
-    'coding' => (bool)$moduleinstance->gamecoding,
-];
+// A game is only part of the run when its toggle is on AND it has real content.
+$enabledgames = \mod_agon\local\content::playable_games($moduleinstance);
+
+// Nothing playable (e.g. empty/invalid JSON): tell the student instead of
+// rendering an empty run that would bank a zero-score attempt.
+if ($view === 'student' && !array_filter($enabledgames)) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->notification(get_string('notconfigured', 'mod_agon'), 'info');
+    echo $OUTPUT->footer();
+    exit;
+}
 
 if ($view === 'student') {
     // Answer-free content: subject/week + renderable game data with no answers.

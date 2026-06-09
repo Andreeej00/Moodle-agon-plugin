@@ -113,7 +113,7 @@ class mod_agon_mod_form extends moodleform_mod {
 
         // --- Question content ---
         $mform->addElement('static', 'qguide', 'Question content',
-            'Paste JSON: <code>{ subject_code, week, topic, questions:[{ question, options:[...], correct: index, explanation }] }</code> &mdash; ~5 per week. Timed; correct = 1.0.');
+            'Paste JSON: <code>{ subject_code, week, topic, questions:[{ question, options:[...], correct: index, explanation }] }</code> &mdash; a pool of ~5 per week; each run serves <b>one</b> of them. Timed; correct = 1.0.');
         $mform->addElement('textarea', 'contentquestion', 'Questions JSON', ['rows' => 12, 'cols' => 70]);
         $mform->setType('contentquestion', PARAM_RAW);
         $mform->setDefault('contentquestion', $qexample);
@@ -129,13 +129,38 @@ class mod_agon_mod_form extends moodleform_mod {
         $mform->hideIf('codeguide', 'gamecoding', 'notchecked');
         $mform->hideIf('contentcoding', 'gamecoding', 'notchecked');
 
-        // Add standard grading elements.
-        $this->standard_grading_coursemodule_elements();
-
         // Add standard elements.
         $this->standard_coursemodule_elements();
 
         // Add standard buttons.
         $this->add_action_buttons();
+    }
+
+    /**
+     * Each enabled game must have valid JSON with its required list, otherwise
+     * the student play view would render an empty game.
+     *
+     * @param array $data Form data.
+     * @param array $files Form files.
+     * @return array Field errors.
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        $checks = [
+            'contentcrossword' => ['gamecrossword', 'words'],
+            'contentquestion' => ['gamequestion', 'questions'],
+            'contentcoding' => ['gamecoding', 'sequences'],
+        ];
+        foreach ($checks as $field => [$toggle, $key]) {
+            if (empty($data[$toggle])) {
+                continue;
+            }
+            $decoded = json_decode((string)($data[$field] ?? ''), true);
+            if (!is_array($decoded) || empty($decoded[$key]) || !is_array($decoded[$key])) {
+                $errors[$field] = get_string('invalidgamejson', 'mod_agon', $key);
+            }
+        }
+        return $errors;
     }
 }

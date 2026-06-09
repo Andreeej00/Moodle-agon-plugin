@@ -121,6 +121,27 @@ class content {
     }
 
     /**
+     * Which games can actually be played: the toggle is on AND the saved JSON
+     * holds real content. A game that is enabled but empty (or invalid JSON)
+     * must not appear in the run, or students would play an empty screen and
+     * bank a zero — and finish() would wait forever on it.
+     *
+     * @param \stdClass $agon The agon instance record (toggles + content columns).
+     * @return array{crossword: bool, question: bool, coding: bool}
+     */
+    public static function playable_games(\stdClass $agon): array {
+        $has = function ($json, $key) {
+            $value = json_decode((string)$json, true);
+            return is_array($value) && !empty($value[$key]) && is_array($value[$key]);
+        };
+        return [
+            'crossword' => !empty($agon->gamecrossword) && $has($agon->contentcrossword, 'words'),
+            'question' => !empty($agon->gamequestion) && $has($agon->contentquestion, 'questions'),
+            'coding' => !empty($agon->gamecoding) && $has($agon->contentcoding, 'sequences'),
+        ];
+    }
+
+    /**
      * Answers + explanation for a game, revealed after the student submits it.
      *
      * @param int $agonid

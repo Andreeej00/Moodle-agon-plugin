@@ -2,7 +2,7 @@
 
 > **`mod_agon`** · A Moodle activity that turns a week's course topic into a short, competitive run of mini-games — so students prep for quizzes by *playing*.
 
-> **Status: Phase 1 — playable in Moodle.** The activity installs and runs: a teacher picks the games and pastes the content, and a student plays the whole run (crossword → question → coding → score) inside Moodle. Real scoring, attempt tracking, and the live leaderboard are the next (backend) step — those numbers are still placeholders.
+> **Status: Phase 2 — server-authoritative backend (in progress).** The full run plays inside Moodle, and scoring, attempts, hints and the course leaderboard are now **real and server-side** — answers never reach the browser, one attempt and one hint per game are enforced. Still pending: gradebook export and server-enforced timers + per-attempt randomization.
 
 ## 📸 Screens
 

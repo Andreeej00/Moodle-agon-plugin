@@ -15,7 +15,7 @@ A Moodle activity that helps students prep for quizzes by turning a week's cours
 ## 3. Content model — JSON per game, entered at setup
 The professor chooses which games the activity includes (3 checkboxes), then pastes each chosen game's content as **JSON** (per week/topic). Stored in the `agon` table columns `content{crossword,question,coding}`; toggles in `game{crossword,question,coding}`. Schemas:
 - **Crossword:** `{ subject, subject_code, week, topic, language, difficulty, author, words:[{ number, word, clue, direction, row, col }] }`
-- **Questions (~5/week):** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }`
+- **Questions (~5/week):** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }` — a **pool**: each run serves **one** question from it (currently the first; per-attempt randomization picks one in step 9).
 - **Coding (2 sequences):** `{ subject_code, week, sequences:[{ title, code (with ____), blanks:[…], options:[…] }] }`
 
 *(Later: import from Glossary / Question Bank.)*
@@ -51,10 +51,10 @@ Goal: **honest play faster than cheating**. **Implemented (UI):** a **Start gate
   3. **Answer split.** `view.php` ships only *renderable* content to `window.AGON` (clues, options, code-with-blanks) — never the `correct` index or coding `blanks`. Answers stay server-side.
   4. **Comms layer — AMD + web services.** Front end moves to AMD modules calling external services (`start_attempt`, `submit_game`/`finish`) in `db/services.php` + `classes/external/`. `start_attempt` issues the puzzle and stamps the server clock; submit validates + scores via the engine; enforces one attempt.
   5. **Real leaderboard.** Cumulative course-wide sum across attempts/weeks; replaces the placeholder arrays in the student results screen and the teacher monitor.
-  6. **Gradebook.** Wire `agon_update_grades` so the top-performer reward (§4/§5) lands in the gradebook.
+  6. **Gradebook.** Add the missing `grade` column to the `agon` table (the `lib.php` scaffold referenced it but it was never created — the scale stubs and the grading section of the settings form return then), wire `agon_update_grades` so the top-performer reward (§4/§5) lands in the gradebook.
   7. **Capabilities.** `db/access.php` (`mod/agon:play`, `:manage`, `:viewleaderboard`); switch the `view.php` teacher branch from `moodle/course:manageactivities` to `mod/agon:manage`.
   8. **Privacy provider.** Replace the `null_provider` with a real provider describing the stored attempts/responses.
-  9. **Enforced timers + randomization.** Server compares its `timestart` against submit time (client countdown becomes display-only); per-attempt question/word selection.
+  9. **Enforced timers + randomization.** Server compares its `timestart` against submit time (client countdown becomes display-only); per-attempt question selection from the pool. Also fix two known (rare) races here: wrap the crossword finish-rank count in a transaction/lock (two simultaneous full solves can currently claim the same rank), and make `attempt::start` collision-safe (two parallel first calls can hit the unique key — catch and re-fetch instead of erroring).
   10. **Tests.** Replace the placeholder PHPUnit stub with real engine tests; Behat for the play flow; `moodle-plugin-ci` in CI.
 - **Phase 3 — Full experience.** Daily challenge + streaks; glossary/question-bank import; screen transitions + micro-animations; accessibility + touch support; dark mode; crossword placement validation; backup/restore.
 

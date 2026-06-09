@@ -150,6 +150,22 @@ final class attempt_test extends \advanced_testcase {
         attempt::finish($a);
     }
 
+    public function test_finish_skips_enabled_but_empty_games(): void {
+        // Crossword/coding toggles default to on, but their content defaults to '' —
+        // they are not playable, so only the question gates the finish.
+        $instance = $this->getDataGenerator()->create_module('agon', [
+            'course' => $this->agon->course,
+            'contentquestion' => json_encode(['questions' => [
+                ['question' => 'Pick B', 'options' => ['A', 'B'], 'correct' => 1],
+            ]]),
+        ]);
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($instance->id, $user->id);
+        attempt::submit_game($a, 'question', ['selected' => 1]);
+        $fin = attempt::finish($a);
+        $this->assertSame(attempt::STATE_FINISHED, $fin->state);
+    }
+
     public function test_unusable_hint_is_not_spent(): void {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);
