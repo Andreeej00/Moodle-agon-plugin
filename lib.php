@@ -40,6 +40,16 @@ function agon_supports($feature) {
 }
 
 /**
+ * Declare the activity icon as branded: it renders in its own colours on the
+ * course page, without the purpose-coloured background container.
+ *
+ * @return bool
+ */
+function agon_is_branded(): bool {
+    return true;
+}
+
+/**
  * Saves a new instance of the mod_agon into the database.
  *
  * Given an object containing all the necessary data, (defined by the form

@@ -265,6 +265,7 @@ class attempt {
             'scorecoding' => (float)$attempt->scorecoding,
             'score' => (float)$attempt->score,
             'submittedgames' => self::submitted_games($attempt),
+            'hintsused' => self::hints_used($attempt),
         ];
     }
 }

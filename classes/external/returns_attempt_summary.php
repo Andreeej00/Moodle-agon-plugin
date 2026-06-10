@@ -47,6 +47,10 @@ trait returns_attempt_summary {
                 new external_value(PARAM_ALPHA, 'A submitted game key'),
                 'Games already submitted in this attempt'
             ),
+            'hintsused' => new external_multiple_structure(
+                new external_value(PARAM_ALPHA, 'A game key whose one hint has been spent'),
+                'Games whose hint has already been used in this attempt'
+            ),
             'feedback' => new external_value(
                 PARAM_RAW,
                 'JSON of the just-submitted game\'s revealed answers + explanation',

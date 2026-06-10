@@ -10,6 +10,11 @@
   --r:14px;
   --shadow-sm:0 1px 2px rgba(16,38,62,.05), 0 8px 20px -6px rgba(16,38,62,.08);
   --shadow-lg:0 1px 2px rgba(16,38,62,.06), 0 24px 48px -12px rgba(13,79,143,.18);
+}
+/* The visual shell lives on .agon-page (set only by our own templates) — the
+   course page marks the activity <li> with a bare "agon" class, which must
+   not pick up the wash/padding. */
+.agon-page{
   color:var(--ink);
   /* smooth wash behind the card: faint puzzle motifs in the brand blue,
      so the app doesn't float on flat Moodle white */
@@ -31,7 +36,7 @@
 .agon .pill{background:rgba(255,255,255,.2);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap}
 .agon .hint-btn{background:rgba(255,255,255,.18);border:0;color:#fff;width:38px;height:38px;border-radius:50%;font-size:16px;cursor:pointer}
 .agon .hint-btn:disabled{opacity:.4;cursor:not-allowed}
-.agon .switch{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#fff;cursor:pointer;font-weight:600}
+.agon .switch{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#fff;cursor:pointer;font-weight:600;margin:0} /* margin:0 beats Bootstrap's label margin-bottom, keeping it vertically centred */
 .agon .switch input{display:none}
 .agon .switch .track{width:34px;height:20px;border-radius:999px;background:rgba(255,255,255,.3);position:relative;transition:.2s}
 .agon .switch .track::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.2s}

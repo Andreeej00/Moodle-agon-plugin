@@ -184,9 +184,19 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
 
             // ---------- hint (context-aware, once per game, server-issued) ----------
             var updateHint = function(name) {
-                if (!$('hint')) { return; }
-                $('hint').disabled = !isGame(name) || !!hintUsed[name] || !!submitted[name] ||
-                    ((name === 'question' || name === 'coding') && !started[name]);
+                var btn = $('hint');
+                if (!btn) { return; }
+                var gated = (name === 'question' || name === 'coding') && !started[name];
+                btn.disabled = !isGame(name) || !!hintUsed[name] || !!submitted[name] || gated;
+                // Say WHY it is disabled — a greyed bulb on the next game's Start gate
+                // otherwise looks like the previous game's hint carried over.
+                var why = !isGame(name) ? 'Hints are available during the games'
+                    : hintUsed[name] ? 'Hint already used for this game'
+                    : submitted[name] ? 'This game is already submitted'
+                    : gated ? 'Press Start first — this game\'s hint is still available'
+                    : 'Hint (one per game)';
+                btn.title = why;
+                btn.setAttribute('aria-label', why);
             };
             if ($('hint')) {
                 $('hint').addEventListener('click', function() {
@@ -563,6 +573,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                     scores.question = resp.scorequestion;
                     scores.coding = resp.scorecoding;
                     sub.forEach(function(g) { submitted[g] = true; });
+                    // Restore spent hints too, so a reload can't re-enable a used hint.
+                    (resp.hintsused || []).forEach(function(g) { hintUsed[g] = true; });
 
                     if (resp.state === 'finished') {
                         finished = true;
