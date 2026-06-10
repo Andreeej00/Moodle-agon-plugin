@@ -1,5 +1,6 @@
 {{!
-    Student play view for mod_agon. Filled in by js/student.js from window.AGON.
+    Student play view for mod_agon. Filled in by amd/src/player.js from
+    window.AGON + the mod_agon web services.
 }}
 <div class="agon">
   <div class="app" id="agon-app" role="group" aria-label="Agon learning games">
@@ -22,9 +23,9 @@
           <div class="kicker">Today's challenge</div>
           <h2 class="stage__title" id="t-start" tabindex="-1">{{subject}}</h2>
           <p class="lead">Three mini-games: crossword, weekly question, and coding. Earn points for the course leaderboard.</p>
-          <div class="ag-card" style="margin:0;background:#eef7f1;border-color:#cfe9da">
+          <div class="scorebox">
             <b>Scoring</b><br>
-            Crossword: 1st&ndash;3rd = <b>1.0</b>, 4th&ndash;10th = <b>0.75</b>, others = <b>0.5</b><br>
+            Crossword: full solve, 1st&ndash;3rd = <b>1.0</b>, 4th&ndash;10th = <b>0.75</b>, later = <b>0.5</b> &middot; partial up to <b>0.49</b><br>
             Question: correct = <b>1.0</b> &middot; Coding: 2 &times; <b>0.5</b> (partial)<br>
             1 hint per game &middot; 1 attempt
           </div>

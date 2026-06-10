@@ -297,7 +297,8 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                     }
                     nums[w.row + '-' + w.col] = w.number;
                 });
-                host.style.gridTemplateColumns = 'repeat(' + (maxC + 1) + ', 38px)';
+                host.style.setProperty('--cw-cols', maxC + 1);
+                host.style.gridTemplateColumns = 'repeat(' + (maxC + 1) + ', var(--cw-size, 38px))';
                 var html = '';
                 for (var r = 0; r <= maxR; r++) {
                     for (var c = 0; c <= maxC; c++) {
