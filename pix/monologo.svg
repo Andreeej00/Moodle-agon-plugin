@@ -1,41 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- mod_agon (branded): a black & white 4x4 puzzle cube, one row spelling AGON.
-       Letters are drawn as paths so the icon renders identically everywhere. -->
+  <!-- mod_agon (branded): isometric black & white puzzle cube whose middle band
+       spells A G · O N around the front edge. Letterforms are real glyph
+       outlines from DejaVu Sans Bold (free licence), baked in as paths and
+       stickered onto the faces with skewY — no font dependency at render time. -->
 
-  <!-- cube body -->
-  <path d="M5 16 L14 8 H60 V54 L51 62 H5 Z" fill="#fff"/>
+  <!-- cube body (hexagonal silhouette) -->
+  <path d="M32 3 L59 18.5 V46.5 L32 62 L5 46.5 V18.5 Z" fill="#fff"/>
 
-  <!-- black accent cells (front only — the slim top/side faces clot at icon size) -->
-  <rect x="16.5" y="16" width="11.5" height="11.5" fill="#0c0c0d"/>
-  <rect x="28" y="50.5" width="11.5" height="11.5" fill="#0c0c0d"/>
-
-  <!-- grid lines -->
-  <g stroke="#0c0c0d" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M16.5 16 V62 M28 16 V62 M39.5 16 V62"/>
-    <path d="M5 27.5 H51 M5 39 H51 M5 50.5 H51"/>
-    <path d="M16.5 16 L25.5 8 M28 16 L37 8 M39.5 16 L48.5 8"/>
-    <path d="M51 27.5 L60 19.5 M51 39 L60 31 M51 50.5 L60 42.5"/>
-    <path d="M5 16 H51 M51 16 V62 M51 16 L60 8"/>
+  <!-- cell grid (thin) -->
+  <g stroke="#0c0c0d" stroke-width="1.1" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <!-- top face 3x3 -->
+    <path d="M41 8.2 L14 23.7 M50 13.3 L23 28.8"/>
+    <path d="M23 8.2 L50 23.7 M14 13.3 L41 28.8"/>
+    <!-- left face rows -->
+    <path d="M5 27.8 L32 43.3 M5 37.2 L32 52.7"/>
+    <!-- right face rows -->
+    <path d="M32 43.3 L59 27.8 M32 52.7 L59 37.2"/>
+    <!-- left face columns (middle row open for the letter band) -->
+    <path d="M14 23.7 V33 M14 42.3 V51.7 M23 28.8 V38.2 M23 47.5 V56.8"/>
+    <!-- right face columns (middle row open) -->
+    <path d="M41 28.8 V38.2 M41 47.5 V56.8 M50 23.7 V33 M50 42.3 V51.7"/>
   </g>
-  <!-- outer silhouette, bolder like the reference -->
-  <path d="M5 16 L14 8 H60 V54 L51 62 H5 Z" fill="none" stroke="#0c0c0d" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- face boundary edges (slightly stronger to keep the 3D form) -->
+  <path d="M5 18.5 L32 34 L59 18.5 M32 34 V62" stroke="#0c0c0d" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- outer silhouette (unchanged, boldest) -->
+  <path d="M32 3 L59 18.5 V46.5 L32 62 L5 46.5 V18.5 Z" fill="none" stroke="#0c0c0d" stroke-width="3.2" stroke-linejoin="round"/>
 
-  <!-- A G O N on the third row (cells are white there) -->
-  <!-- A -->
-  <path fill="#0c0c0d" fill-rule="evenodd"
-        d="M10.75 41.3 L14.17 48.3 H12.52 L11.86 46.7 H9.64 L8.98 48.3 H7.33 Z
-           M10.75 43.35 L11.39 45.4 H10.11 Z"/>
-  <!-- G -->
-  <circle cx="22.25" cy="44.75" r="3.6" fill="#0c0c0d"/>
-  <circle cx="22.25" cy="44.75" r="1.85" fill="#fff"/>
-  <rect x="22.9" y="40.8" width="3.4" height="2.6" fill="#fff"/>
-  <rect x="22.25" y="44.2" width="3.45" height="1.75" fill="#0c0c0d"/>
-  <rect x="24.15" y="44.2" width="1.55" height="2.9" fill="#0c0c0d"/>
-  <!-- O -->
-  <circle cx="33.75" cy="44.75" r="3.6" fill="#0c0c0d"/>
-  <circle cx="33.75" cy="44.75" r="1.85" fill="#fff"/>
-  <!-- N -->
-  <rect x="41.95" y="41.25" width="1.8" height="7.05" fill="#0c0c0d"/>
-  <rect x="46.75" y="41.25" width="1.8" height="7.05" fill="#0c0c0d"/>
-  <path d="M41.95 41.25 L43.75 41.25 L48.55 48.3 L46.75 48.3 Z" fill="#0c0c0d"/>
+  <!-- A G on the left face band, hugging the centre edge -->
+  <g transform="skewY(29.87)" fill="#0c0c0d">
+    <path transform="translate(14.68 33.2) scale(0.004823 -0.004823)"
+          d="M1094 272H492L397 0H10L563 1493H1022L1575 0H1188ZM588 549H997L793 1143Z"/>
+    <path transform="translate(23.56 33.2) scale(0.004823 -0.004823)"
+          d="M1530 111Q1386 41 1231.0 6.0Q1076 -29 911 -29Q538 -29 320.0 179.5Q102 388 102 745Q102 1106 324.0 1313.0Q546 1520 932 1520Q1081 1520 1217.5 1492.0Q1354 1464 1475 1409V1100Q1350 1171 1226.5 1206.0Q1103 1241 979 1241Q749 1241 624.5 1112.5Q500 984 500 745Q500 508 620.0 379.0Q740 250 961 250Q1021 250 1072.5 257.5Q1124 265 1165 281V571H930V829H1530Z"/>
+  </g>
+
+  <!-- O N on the right face band, hugging the centre edge -->
+  <g transform="skewY(-29.87)" fill="#0c0c0d">
+    <path transform="translate(32.60 69.9) scale(0.004823 -0.004823)"
+          d="M870 1241Q694 1241 597.0 1111.0Q500 981 500 745Q500 510 597.0 380.0Q694 250 870 250Q1047 250 1144.0 380.0Q1241 510 1241 745Q1241 981 1144.0 1111.0Q1047 1241 870 1241ZM870 1520Q1230 1520 1434.0 1314.0Q1638 1108 1638 745Q1638 383 1434.0 177.0Q1230 -29 870 -29Q511 -29 306.5 177.0Q102 383 102 745Q102 1108 306.5 1314.0Q511 1520 870 1520Z"/>
+    <path transform="translate(41.37 69.9) scale(0.004823 -0.004823)"
+          d="M188 1493H618L1161 469V1493H1526V0H1096L553 1024V0H188Z"/>
+  </g>
 </svg>
