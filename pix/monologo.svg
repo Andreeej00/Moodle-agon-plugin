@@ -1,15 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <!-- mod_agon (branded): a word-game tile — crossword cells + the Agon "A". -->
-  <defs>
-    <linearGradient id="agonbg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2f8ce4"/>
-      <stop offset="1" stop-color="#1166bb"/>
-    </linearGradient>
-  </defs>
-  <rect x="1.25" y="1.25" width="21.5" height="21.5" rx="5" fill="url(#agonbg)"/>
-  <rect x="1.25" y="1.25" width="21.5" height="21.5" rx="5" fill="none" stroke="#0d4f8f" stroke-opacity=".35" stroke-width=".75"/>
-  <rect x="4.2" y="4.2" width="3.1" height="3.1" rx=".8" fill="#fff" opacity=".92"/>
-  <rect x="8.1" y="4.2" width="3.1" height="3.1" rx=".8" fill="#fff" opacity=".45"/>
-  <path fill="#fff" fill-rule="evenodd"
-    d="M12 7.6 L17.6 19.4 H14.9 L13.8 16.7 H10.2 L9.1 19.4 H6.4 Z M12 10.9 L13.05 14.35 H10.95 Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- mod_agon (branded): a black & white 4x4 puzzle cube, one row spelling AGON.
+       Letters are drawn as paths so the icon renders identically everywhere. -->
+
+  <!-- cube body -->
+  <path d="M5 16 L14 8 H60 V54 L51 62 H5 Z" fill="#fff"/>
+
+  <!-- black accent cells (front only — the slim top/side faces clot at icon size) -->
+  <rect x="16.5" y="16" width="11.5" height="11.5" fill="#0c0c0d"/>
+  <rect x="28" y="50.5" width="11.5" height="11.5" fill="#0c0c0d"/>
+
+  <!-- grid lines -->
+  <g stroke="#0c0c0d" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M16.5 16 V62 M28 16 V62 M39.5 16 V62"/>
+    <path d="M5 27.5 H51 M5 39 H51 M5 50.5 H51"/>
+    <path d="M16.5 16 L25.5 8 M28 16 L37 8 M39.5 16 L48.5 8"/>
+    <path d="M51 27.5 L60 19.5 M51 39 L60 31 M51 50.5 L60 42.5"/>
+    <path d="M5 16 H51 M51 16 V62 M51 16 L60 8"/>
+  </g>
+  <!-- outer silhouette, bolder like the reference -->
+  <path d="M5 16 L14 8 H60 V54 L51 62 H5 Z" fill="none" stroke="#0c0c0d" stroke-width="2.4" stroke-linejoin="round"/>
+
+  <!-- A G O N on the third row (cells are white there) -->
+  <!-- A -->
+  <path fill="#0c0c0d" fill-rule="evenodd"
+        d="M10.75 41.3 L14.17 48.3 H12.52 L11.86 46.7 H9.64 L8.98 48.3 H7.33 Z
+           M10.75 43.35 L11.39 45.4 H10.11 Z"/>
+  <!-- G -->
+  <circle cx="22.25" cy="44.75" r="3.6" fill="#0c0c0d"/>
+  <circle cx="22.25" cy="44.75" r="1.85" fill="#fff"/>
+  <rect x="22.9" y="40.8" width="3.4" height="2.6" fill="#fff"/>
+  <rect x="22.25" y="44.2" width="3.45" height="1.75" fill="#0c0c0d"/>
+  <rect x="24.15" y="44.2" width="1.55" height="2.9" fill="#0c0c0d"/>
+  <!-- O -->
+  <circle cx="33.75" cy="44.75" r="3.6" fill="#0c0c0d"/>
+  <circle cx="33.75" cy="44.75" r="1.85" fill="#fff"/>
+  <!-- N -->
+  <rect x="41.95" y="41.25" width="1.8" height="7.05" fill="#0c0c0d"/>
+  <rect x="46.75" y="41.25" width="1.8" height="7.05" fill="#0c0c0d"/>
+  <path d="M41.95 41.25 L43.75 41.25 L48.55 48.3 L46.75 48.3 Z" fill="#0c0c0d"/>
 </svg>
