@@ -9,6 +9,14 @@
     <p class="muted">Student attempts and the course leaderboard. Game content (crossword / questions / coding JSON) is configured in the activity settings.</p>
     <div class="ag-card">
       <div class="kicker">Student attempts</div>
+      <div class="lbt-toolbar">
+        <input type="search" id="att-search" class="lbt-search" placeholder="Search students&hellip;" aria-label="Search attempts by student name">
+        <select id="att-state" class="lbt-select" aria-label="Filter attempts by status">
+          <option value="all">All attempts</option>
+          <option value="finished">Finished</option>
+          <option value="inprogress">In progress</option>
+        </select>
+      </div>
       <table class="lbt">
         <thead><tr><th>Student</th><th>Crossword</th><th>Question</th><th>Coding</th><th>Total</th><th>Status</th></tr></thead>
         <tbody id="att-rows"></tbody>

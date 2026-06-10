@@ -77,6 +77,7 @@
 .agon .stepper{display:flex;justify-content:space-between;margin-bottom:10px}
 .agon .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:11px;font-weight:600}
 .agon .step__dot{width:34px;height:34px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700;font-size:13px}
+.agon .step__dot svg{width:17px;height:17px;display:block}
 .agon .step.is-active .step__dot{background:var(--accent);color:#fff;box-shadow:0 0 0 3px rgba(21,116,207,.18)}
 .agon .step.is-done .step__dot{background:var(--brand);color:#fff}
 .agon .step.is-active{color:var(--accent)}
@@ -195,6 +196,12 @@
 /* professor (monitor) */
 .agon .adm-embed{max-width:880px;margin:0 auto}
 .agon .muted{color:var(--muted);font-size:13px}
+.agon .lbt-toolbar{display:flex;gap:10px;margin:10px 0 12px;flex-wrap:wrap}
+.agon .lbt-search{flex:1;min-width:180px;padding:9px 12px;border:1.5px solid #d6e0ec;border-radius:9px;font-size:14px;background:#fff;color:var(--ink)}
+.agon .lbt-search::placeholder{color:#9fb0c2}
+.agon .lbt-select{padding:9px 10px;border:1.5px solid #d6e0ec;border-radius:9px;font-size:14px;background:#fff;color:var(--ink);cursor:pointer}
+.agon .lbt-search:focus,.agon .lbt-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(21,116,207,.15)}
+.agon td.lbt-empty{text-align:center;color:var(--muted);font-style:italic}
 .agon table.lbt{width:100%;border-collapse:collapse}
 .agon table.lbt th,.agon table.lbt td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:14px}
 .agon table.lbt th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
