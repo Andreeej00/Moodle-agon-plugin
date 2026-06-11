@@ -1,44 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- mod_agon (branded): isometric black & white puzzle cube whose middle band
-       spells A G · O N around the front edge. Letterforms are real glyph
-       outlines from DejaVu Sans Bold (free licence), baked in as paths and
-       stickered onto the faces with skewY — no font dependency at render time. -->
+  <!-- mod_agon (branded): isometric black & white puzzle cube. The two front
+       faces keep a 3-cell top row; their middle + bottom rows are merged into
+       one tall blank band that holds AGON in large type (A G on the left face,
+       O N on the right, set symmetrically about the centre edge). Letterforms
+       are DejaVu Sans Bold outlines (free licence) baked in as paths and
+       sheared onto the faces — no font dependency at render time. -->
 
-  <!-- cube body (hexagonal silhouette) -->
+  <!-- cube body -->
   <path d="M32 3 L59 18.5 V46.5 L32 62 L5 46.5 V18.5 Z" fill="#fff"/>
 
-  <!-- cell grid (thin) -->
+  <!-- thin cell grid: full top face + top row only on the two front faces -->
   <g stroke="#0c0c0d" stroke-width="1.1" fill="none" stroke-linejoin="round" stroke-linecap="round">
-    <!-- top face 3x3 -->
     <path d="M41 8.2 L14 23.7 M50 13.3 L23 28.8"/>
     <path d="M23 8.2 L50 23.7 M14 13.3 L41 28.8"/>
-    <!-- left face rows -->
-    <path d="M5 27.8 L32 43.3 M5 37.2 L32 52.7"/>
-    <!-- right face rows -->
-    <path d="M32 43.3 L59 27.8 M32 52.7 L59 37.2"/>
-    <!-- left face columns (middle row open for the letter band) -->
-    <path d="M14 23.7 V33 M14 42.3 V51.7 M23 28.8 V38.2 M23 47.5 V56.8"/>
-    <!-- right face columns (middle row open) -->
-    <path d="M41 28.8 V38.2 M41 47.5 V56.8 M50 23.7 V33 M50 42.3 V51.7"/>
+    <path d="M5 27.8 L32 43.3"/>
+    <path d="M32 43.3 L59 27.8"/>
+    <path d="M14 23.7 V33 M23 28.8 V38.2"/>
+    <path d="M41 28.8 V38.2 M50 23.7 V33"/>
   </g>
-  <!-- face boundary edges (slightly stronger to keep the 3D form) -->
+  <!-- face-boundary edges + outer silhouette -->
   <path d="M5 18.5 L32 34 L59 18.5 M32 34 V62" stroke="#0c0c0d" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-  <!-- outer silhouette (unchanged, boldest) -->
   <path d="M32 3 L59 18.5 V46.5 L32 62 L5 46.5 V18.5 Z" fill="none" stroke="#0c0c0d" stroke-width="3.2" stroke-linejoin="round"/>
 
-  <!-- A G on the left face band, hugging the centre edge -->
-  <g transform="skewY(29.87)" fill="#0c0c0d">
-    <path transform="translate(13.08 33.2) scale(0.004823 -0.004823)"
+  <!-- A G on the left face band -->
+  <g transform="skewY(29.859)" fill="#0c0c0d">
+    <path transform="translate(6.979 39.792) scale(0.006780 -0.007370)"
           d="M1094 272H492L397 0H10L563 1493H1022L1575 0H1188ZM588 549H997L793 1143Z"/>
-    <path transform="translate(21.96 33.2) scale(0.004823 -0.004823)"
+    <path transform="translate(18.826 39.792) scale(0.006780 -0.007370)"
           d="M1530 111Q1386 41 1231.0 6.0Q1076 -29 911 -29Q538 -29 320.0 179.5Q102 388 102 745Q102 1106 324.0 1313.0Q546 1520 932 1520Q1081 1520 1217.5 1492.0Q1354 1464 1475 1409V1100Q1350 1171 1226.5 1206.0Q1103 1241 979 1241Q749 1241 624.5 1112.5Q500 984 500 745Q500 508 620.0 379.0Q740 250 961 250Q1021 250 1072.5 257.5Q1124 265 1165 281V571H930V829H1530Z"/>
   </g>
 
-  <!-- O N on the right face band, hugging the centre edge -->
-  <g transform="skewY(-29.87)" fill="#0c0c0d">
-    <path transform="translate(34.20 69.9) scale(0.004823 -0.004823)"
+  <!-- O N on the right face band -->
+  <g transform="skewY(-29.859)" fill="#0c0c0d">
+    <path transform="translate(34.108 76.542) scale(0.006780 -0.007370)"
           d="M870 1241Q694 1241 597.0 1111.0Q500 981 500 745Q500 510 597.0 380.0Q694 250 870 250Q1047 250 1144.0 380.0Q1241 510 1241 745Q1241 981 1144.0 1111.0Q1047 1241 870 1241ZM870 1520Q1230 1520 1434.0 1314.0Q1638 1108 1638 745Q1638 383 1434.0 177.0Q1230 -29 870 -29Q511 -29 306.5 177.0Q102 383 102 745Q102 1108 306.5 1314.0Q511 1520 870 1520Z"/>
-    <path transform="translate(42.97 69.9) scale(0.004823 -0.004823)"
+    <path transform="translate(45.813 76.542) scale(0.006780 -0.007370)"
           d="M188 1493H618L1161 469V1493H1526V0H1096L553 1024V0H188Z"/>
   </g>
 </svg>
