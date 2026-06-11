@@ -24,7 +24,7 @@ A student plays a linear run on the week's topic — each game asks them to do *
 
 | Step | Game | Trains | Scoring |
 | --- | --- | --- | --- |
-| 1 | **Crossword** | Recall | finish-rank: 1st–3rd = **1.0**, 4th–10th = **0.75**, rest = **0.5** · no timer |
+| 1 | **Crossword** | Recall | no timer · full solve by finish-rank: 1st–3rd **1.0**, 4th–10th **0.75**, later **0.5** · partial up to **0.49** |
 | 2 | **Weekly Question** | Understand | timed · correct = **1.0**, wrong = **0** |
 | 3 | **Coding** | Apply | timed · 2 sequences × **0.5**, partial credit per correct placement |
 
@@ -37,7 +37,7 @@ A **Start gate + countdown** on the timed games (the question/code stay hidden u
 ## 👤 Two views
 
 - **Student** — plays the run: **Start → Crossword → Weekly question → Coding → Score** (bottom-nav stepper).
-- **Professor / assistant** — **doesn't play**: **configures** the activity (picks games + pastes each game's **JSON** content) and **monitors** (student attempts + leaderboard).
+- **Professor / assistant** — **doesn't play**: **configures** the activity (picks games + pastes each game's **JSON** content, validated on save) and **monitors** (student attempts — searchable by name and filterable by state — plus the course leaderboard).
 
 ## 🛡️ Anti-AI by design
 
@@ -48,20 +48,20 @@ Real grade points are on the line, so the goal is **honest play faster than chea
 - **Coding** — revealed **one line at a time**, and revealing the next line **locks the lines above** — no reveal-everything-then-screenshot.
 - **Crossword** — deliberately the low-stakes, shareable warm-up.
 
-Still server-side (Phase 2): authoritative scoring, server-enforced timers, per-attempt randomization. *(Today the timer + scoring run client-side.)*
+**Scoring is now server-authoritative** — answers never reach the browser (`window.AGON` ships clues, options and code-with-blanks only; the `correct` index and coding `blanks` stay on the server), the engine grades server-side, and one attempt + one hint per game are enforced. The reveal of each game's answers + explanation only comes back *after* you submit it. Still to come: **server-enforced timers** and **per-attempt randomization** — today the countdown is client-side display.
 
 ## 🧩 Architecture (short)
 
-**One engine + pluggable games** — a shared core (content, scoring, timing, leaderboard, gradebook) with each game as a swappable "renderer." Teachers choose which games an activity includes. In Moodle it renders via Mustache templates + plain JS, styled by a scoped `styles.css`.
+**One engine + pluggable games** — a shared server-side core (`classes/local/`: content, scoring, attempts, leaderboard) with each game as a swappable "renderer." Teachers choose which games an activity includes. The student play is an **AMD module** (`mod_agon/player`) that drives the run through web services (`classes/external/`); the teacher monitor is plain JS. Rendered via Mustache templates, styled by a scoped `styles.css` (Moodle-blue theme).
 
 → Full design: **[plan.md](plan.md)** · Architecture: **[docs/architecture.md](docs/architecture.md)** · Setup & handover: **[HANDOVER.md](HANDOVER.md)**
 
 ## 🗺️ Roadmap
 
 - **Phase 0 — Setup:** ✅ moodle-docker, `mod_agon` scaffolded, installed, live.
-- **Phase 1 — Playable in Moodle:** ✅ student game + teacher config/monitor render in Moodle; activity config (games + JSON content) saved; play is content-driven. ← *here*
-- **Phase 2 — Real backend:** server-side scoring, attempt tracking, the live course leaderboard, gradebook, capabilities, enforced timers + randomization.
-- **Phase 3 — Full experience:** daily challenge + streaks, glossary / question-bank import, transitions/animations, accessibility, touch support, dark mode.
+- **Phase 1 — Playable in Moodle:** ✅ student game + teacher config/monitor; content-driven play.
+- **Phase 2 — Real backend:** ✅ server-side scoring engine, attempt tracking, live cumulative leaderboard, capabilities, real privacy provider, AMD front-end + answer-split, real PHPUnit coverage. **Remaining:** gradebook export, server-enforced timers + per-attempt randomization. ← *here*
+- **Phase 3 — Full experience:** daily challenge + streaks, glossary / question-bank import, transitions/animations, accessibility, touch support, dark mode, backup/restore.
 
 ## 🚀 Getting started
 
@@ -74,7 +74,9 @@ Still server-side (Phase 2): authoritative scoring, server-enforced timers, per-
 ## 📁 Repository layout
 
 This repo **is** the `mod_agon` plugin (installs to `mod/agon`):
-- plugin source at the root — `version.php`, `lib.php`, `mod_form.php`, `view.php`, `db/`, `classes/`, `lang/`, `pix/`, `styles.css`, `templates/`, `js/`, `tests/`
+- plugin source at the root — `version.php`, `lib.php`, `mod_form.php`, `view.php`, `db/`, `lang/`, `pix/`, `styles.css`, `templates/`, `tests/`
+- `classes/` — the engine: `local/` (scoring, attempts, content, leaderboard), `external/` (web services), `privacy/`, `event/`
+- `amd/` — the student AMD player; `js/` — the teacher monitor
 - `prototype/` — standalone clickable UI mock (design only; not shipped to Moodle)
 - `plan.md`, `docs/`, `HANDOVER.md` — plan, architecture, and handover notes
 

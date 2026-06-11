@@ -1,6 +1,6 @@
 # Architecture
 
-Technical companion to [plan.md](../plan.md). This describes *how* `mod_agon` is built; `plan.md` covers *what* and *why*. Sections marked **(planned)** are not built yet.
+Technical companion to [plan.md](../plan.md). This describes *how* `mod_agon` is built; `plan.md` covers *what* and *why*. Sections marked **(planned)** are not built yet; everything else reflects the current code.
 
 ## Plugin type
 
@@ -8,37 +8,45 @@ Technical companion to [plan.md](../plan.md). This describes *how* `mod_agon` is
 
 ## The engine + pluggable games
 
-**One shared engine with swappable game "renderers"** — like an MVVM ViewModel (shared state) with interchangeable views.
+**One shared server-side engine with swappable game "renderers"** — like an MVVM ViewModel (shared state) with interchangeable views.
 
-- **Engine (shared):** content, attempts, scoring, timing, randomization, leaderboard, gradebook. *(Today this is partly the front-end + config storage; the server-side engine is Phase 2.)*
-- **Renderers (per game):** each game reads the same data and draws its own UI. Adding a game = adding a renderer + its scoring rule.
+- **Engine (`classes/local/`):** the server owns the truth.
+  - `scoring` — pure functions for the §4 rules (no DB, no request).
+  - `attempt` — the attempt lifecycle (`start` / `submit_game` / `finish` / `use_hint`); one row per student per instance, one attempt + one hint per game enforced.
+  - `content` — loads the saved per-game JSON and shapes it three ways: `raw()` (answers, for scoring), `public_for_render()` (answers stripped, for the browser), and `feedback()` / `hint()` (answers revealed deliberately).
+  - `leaderboard` — cumulative course-wide totals + the per-instance attempts report.
+- **Renderers (per game):** each game reads the same content and draws its own UI in the front end. Adding a game = adding a renderer + its scoring rule.
 
 ## How it renders in Moodle (current)
 
-- **`view.php`** loads the instance, branches by capability (`moodle/course:manageactivities` → teacher **monitor** view; else **student** game), builds a `$agondata` array from the saved content (with an example fallback), renders a Mustache template, and prints the data as `window.AGON` via `html_writer::script`.
+- **`view.php`** loads the instance, branches by capability (`moodle/course:manageactivities` → teacher **monitor** view; else **student** play), and builds `window.AGON` from `content::public_for_render()` (**answer-free** — clues, options, code-with-blanks; never the `correct` index or coding `blanks`). If no game is playable (toggle off or empty/invalid JSON) the student sees a themed "not configured" notice instead of an empty run.
+- **Student play** is an **AMD module** (`amd/src/player.js` → `mod_agon/player`), loaded via `$PAGE->requires->js_call_amd(...)`. It drives the run through the web services (below) and renders each game's verdict from the server's reveal-on-submit feedback. (No grunt in the container, so `amd/build/player.min.js` is a hand-mirrored copy of the source.)
+- **Teacher monitor** is plain `js/professor.js` (the attempts table with name search + a state filter, plus the leaderboard), loaded with a `filemtime` cache-buster.
 - **Templates:** `templates/student.mustache`, `templates/professor.mustache`.
-- **JS:** plain `js/student.js`, `js/professor.js`, loaded with `$PAGE->requires->js($url, false)` — **footer** (false) so the script runs *after* the `window.AGON` block. URL has a `filemtime` cache-buster. (Not AMD yet.)
-- **CSS:** `styles.css`, every rule scoped under `.agon` to avoid clashing with Moodle/Bootstrap.
+- **CSS:** `styles.css`, every rule scoped under `.agon`; a Moodle-blue theme (azure `#1574cf` + spray-white/grey cards) that sits on Moodle's white page, with gold reserved for leaderboard medals and hint cues.
 
 ## Content model — JSON per game (stored on the instance)
 
-The professor enables games (`gamecrossword`/`gamequestion`/`gamecoding` columns) and pastes each game's JSON (`contentcrossword`/`contentquestion`/`contentcoding` text columns). Per week/topic:
+The professor enables games (`gamecrossword`/`gamequestion`/`gamecoding` columns) and pastes each game's JSON (`contentcrossword`/`contentquestion`/`contentcoding` text columns). `mod_form.php` validates on save (each enabled game must decode to a non-empty `words`/`questions`/`sequences` list). Per week/topic:
 
 - **Crossword:** `{ subject, subject_code, week, topic, language, difficulty, author, words:[{ number, word, clue, direction, row, col }] }`
-- **Questions:** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }`
+- **Questions:** `{ subject_code, week, topic, questions:[{ question, options:[…], correct:index, explanation }] }` — a pool; one question is served per run.
 - **Coding:** `{ subject_code, week, sequences:[{ title, code (with ____), blanks:[…], options:[…] }] }`
 
-`mod_form.php` provides the toggles + per-game textareas (with guideline text + editable example defaults, shown/hidden via `hideIf`). Saving works because the column names match the form field names (Moodle `insert_record`/`update_record` map them).
+Saving works because the column names match the form field names (Moodle `insert_record`/`update_record` map them).
 
 ## Anti-cheat & play mechanics
 
-**Implemented (client-side UI):**
-- **Start gate + countdown:** the question/coding stages hide their content behind a "Start" button; on Start the content renders and a `setInterval` countdown runs (10s / 45s); time-up auto-submits.
-- Question options blurred, cleared on hover or tap (`.opt.peek` / `.opt.is-revealed`).
+**Client-side (UI):**
+- **Start gate + countdown:** the question/coding stages hide their content behind a "Start" button; on Start the content renders and a `setInterval` countdown runs (10s / 45s); time-up auto-submits to the server.
+- Question options blurred, cleared on hover, tap or focus (`.opt.peek` / `.opt.is-revealed`).
 - Coding split into per-line `.codeline` divs; only the first shows; "reveal next line" un-hides the next and `.is-locked`s the blanks above.
-- **Per-game hints** (reveal a crossword letter / show the question explanation / cue the next code blank) and **per-screen feedback** (grade client-side, colour cells/options/blanks, show a banner).
 
-**(planned, server-side):** server-authoritative scoring, server-enforced timers, per-attempt randomization. The browser must never decide the grade — the client-side grading here is skeleton-only and exposes answers in `window.AGON`.
+**Server-side (authoritative):**
+- **The browser never decides a grade.** It sends only the student's *input*; `attempt::submit_game` runs it through `scoring` and writes the score. Answers live server-side and are returned only as **reveal-on-submit** feedback once a game is over.
+- **One attempt + one hint per game**, tracked by the `submittedgames` / `hintsused` columns; resubmits and second hints are refused. Hints are issued by the `get_hint` service so they can't become an answer oracle.
+
+**(planned):** server-enforced timers (compare the server `timestart` to submit time) and per-attempt randomization — today the countdown is client-side display only.
 
 ## The three games
 
@@ -48,28 +56,34 @@ The professor enables games (`gamecrossword`/`gamequestion`/`gamecoding` columns
 | Weekly Question | Understand | Blurred options (hover to read); pick one | yes |
 | Coding | Apply | Two sequences revealed line-by-line; drag/click options into blanks; earlier lines lock | yes |
 
-## Scoring & integrity (planned)
+## Scoring & integrity
 
-Scoring will be **server-authoritative** — the server issues the puzzle, starts the timer, validates the solution, and writes the grade. Today the leaderboard/score values are placeholders rendered in the UI.
+Scoring is **server-authoritative**: the client posts the student's input, the server grades it via `scoring`, recomputes the attempt total, and (planned) will write the gradebook grade. The crossword rule is split — a full solve takes a finish-rank place (1.0 / 0.75 / 0.5, counted live from prior full solvers), while a partial scores `fraction × 0.5` capped at **0.49** so it can never reach a full solve. The leaderboard sums each student's attempt scores across every agon instance in the course.
 
-## Data model (Phase 2, in progress)
+## Data model
 
-- `agon` — the activity instance (exists; also holds the game toggles + JSON content).
-- `agon_attempt` — a student's run: `agonid, userid, timestart, timefinish, state, score` + per-game `scorecrossword/scorequestion/scorecoding`.
-- *(optional)* `agon_response` — per-item answers for detailed scoring/analytics.
+- `agon` — the activity instance (game toggles + per-game JSON content).
+- `agon_attempt` — one student's run: `agonid, userid, state, timestart, timefinish, score` + per-game `scorecrossword/scorequestion/scorecoding`, plus `submittedgames` and `hintsused` (JSON markers). Unique key on `(agonid, userid)` enforces one attempt; FKs to `agon` and `user`.
 
-## Build order (Phase 2)
+## Web services (`db/services.php` + `classes/external/`)
 
-Decided 2026-06-09: start with the **data model + server scoring engine**, and move the front end to **AMD + external web services** for start/submit. Sequence: (1) `agon_attempt` schema, (2) PHP scoring engine, (3) answer-split so `view.php` stops shipping answers in `window.AGON`, (4) AMD + web services (`start_attempt`/`submit`), (5) real leaderboard, (6) gradebook, (7) capabilities, (8) privacy, (9) enforced timers + randomization, (10) tests. Full list in [plan.md](../plan.md) §8.
+AJAX-only external functions the AMD player calls (shared context/return traits in `uses_agon_context` + `returns_attempt_summary`):
 
-## Moodle APIs still to wire (planned)
+- `mod_agon_start_attempt` — start or resume the current user's attempt.
+- `mod_agon_submit_game` — grade one game and return the updated attempt + reveal-on-submit feedback.
+- `mod_agon_finish_attempt` — finish the run (requires every playable game submitted).
+- `mod_agon_get_hint` — spend the one hint for a game.
+- `mod_agon_get_leaderboard` — the live cumulative course leaderboard.
 
-- **External / web services** (`db/services.php` + `classes/external/`) for `start_attempt`, `submit`, lazy fetches — AMD front end calls these. *(Phase 2 comms layer.)*
-- **Gradebook** grade computation in `lib.php` (`agon_update_grades`).
-- **Capabilities** in `db/access.php` (`:play`, `:manage`, `:viewleaderboard`, …); `view.php` branch moves from `moodle/course:manageactivities` to `mod/agon:manage`.
-- **Privacy** provider update (currently declares no personal data; will change once attempts are stored).
-- **Backup/restore** under `backup/moodle2/`.
+## Moodle APIs
+
+- **Capabilities** — `db/access.php`: `mod/agon:addinstance/:play/:manage/:viewleaderboard`; the web services authorize on `:play` / `:viewleaderboard`. **(planned)** `view.php`'s teacher branch still uses `moodle/course:manageactivities`; switch it to `mod/agon:manage`.
+- **Privacy** — real provider (`classes/privacy/provider.php`): metadata + export + delete + userlist for `agon_attempt`.
+- **Icon** — `agon_is_branded()` marks `pix/monologo.svg` as branded (rendered in its own colours, no purpose container).
+- **Gradebook (planned)** — grade computation in `lib.php` (`agon_update_grades`), once the `agon.grade` column exists.
+- **Backup/restore (planned)** — under `backup/moodle2/`.
 
 ## Testing
 
-- **moodle-docker** for a local Moodle + DB (see `HANDOVER.md`). **PHPUnit** on the engine and **Behat** for flows are planned; **moodle-plugin-ci** in GitHub Actions once there's logic to test.
+- **moodle-docker** for a local Moodle + DB (see `HANDOVER.md`).
+- **PHPUnit** across `tests/`: `scoring`, `attempt`, `content`, `leaderboard`, `external/services`, `privacy/provider`. **(planned)** Behat for the play flow + `moodle-plugin-ci` in CI.

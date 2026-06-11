@@ -6,7 +6,7 @@ Practical notes for anyone picking up or running this project. For the *what/why
 
 `mod_agon` is a Moodle activity module: a weekly, competitive run of three mini-games (crossword → weekly question → coding) that helps students revise, with one course leaderboard and extra grade points for top performers. University project.
 
-## 2. Current status (2026-06-08)
+## 2. Current status (2026-06-11)
 
 **Works now (Phase 1):**
 - Installs and runs in Moodle 4.5 LTS.
@@ -18,13 +18,15 @@ Practical notes for anyone picking up or running this project. For the *what/why
   - per-game **hints** (letter / explanation / blank cue), per-screen **feedback**, screen **transitions**, animated **score count-up**, tap-friendly UI.
 - **Teacher monitor** view (attempts + leaderboard) instead of playing.
 
-**Real now (Phase 2 progress, 2026-06-10):**
-- **Scoring, attempts, hints and the course leaderboard are server-side** — `agon_attempt` table, scoring engine, web services, AMD player (`amd/src/player.js`). Answers never reach the browser; one attempt + one hint per game enforced; partial crossword = fraction × 0.5 capped at 0.49.
+**Real now (Phase 2 progress, 2026-06-11):**
+- **Scoring, attempts, hints and the cumulative course leaderboard are server-side** — `agon_attempt` table, `classes/local/` engine (`scoring`/`attempt`/`content`/`leaderboard`), web services (`classes/external/`), AMD player (`amd/src/player.js`). Answers never reach the browser (answer-split); one attempt + one hint per game enforced; partial crossword = fraction × 0.5 capped at 0.49.
 - `db/access.php` capabilities and a real privacy provider (export/delete) are in.
+- UI reskinned to a **Moodle-blue** theme; the **teacher monitor** gained name search + a state filter; the activity icon is a **branded** AGON puzzle cube (`pix/monologo.svg`, `agon_is_branded`).
 
 **Still pending (Phase 2 tail):**
 - Gradebook export (plan §8 step 6 — also adds the missing `grade` column).
-- Server-enforced timers + per-attempt question randomization (step 9, incl. two noted rare races); backup/restore (Phase 3).
+- Switch the `view.php` teacher/student branch from `moodle/course:manageactivities` to `mod/agon:manage` (the capability exists; the branch still uses the old one).
+- Server-enforced timers + per-attempt question randomization (step 9, incl. two noted rare races); Behat + `moodle-plugin-ci`; backup/restore (Phase 3).
 - Accessibility is **in place** (keyboard-operable controls, ARIA labels + live announcements, focus management, focus rings, WCAG-AA contrast). Native drag is desktop-only — the keyboard/tap path covers it. Still worth a real VoiceOver pass to confirm.
 
 ## 3. Run it locally (moodle-docker)
@@ -62,29 +64,30 @@ To see the **student** game, log in as `agonstu` (an incognito window is cleanes
 
 | Path | What |
 | --- | --- |
-| `version.php` | plugin version (bump when adding DB columns / shipping) |
-| `db/install.xml`, `db/upgrade.php` | schema: `agon` table incl. `game*` toggles + `content*` JSON |
-| `mod_form.php` | settings form: game checkboxes + per-game JSON boxes |
-| `view.php` | renders student game / teacher monitor; builds `window.AGON` from saved JSON |
+| `version.php` | plugin version (bump when adding DB columns / web services / capabilities / shipping) |
+| `db/install.xml`, `db/upgrade.php` | schema: `agon` table (`game*` toggles + `content*` JSON) + `agon_attempt` (scores, state, `submittedgames`/`hintsused`) |
+| `db/access.php`, `db/services.php` | capabilities; external web-service function definitions |
+| `mod_form.php` | settings form: game checkboxes + per-game JSON boxes (with `validation()`) |
+| `view.php` | branches student play / teacher monitor; builds answer-free `window.AGON`; loads the AMD player or `professor.js` |
+| `classes/local/` | the engine: `scoring` (rules), `attempt` (lifecycle), `content` (answer-split + feedback/hint), `leaderboard` (cumulative + monitor rows) |
+| `classes/external/` | web services: `start_attempt`, `submit_game`, `finish_attempt`, `get_hint`, `get_leaderboard` (+ shared traits) |
+| `classes/privacy/provider.php` | real privacy provider (attempts: export + delete) |
+| `amd/src/player.js` (+ `amd/build/`) | the student play flow (AMD; hand-mirrored build, no grunt in the container) |
 | `templates/student.mustache`, `professor.mustache` | the UI markup |
-| `js/student.js`, `js/professor.js` | the play logic / monitor tables (plain JS) |
-| `styles.css` | scoped under `.agon` |
-| `lib.php` | Moodle callbacks (`agon_add_instance`, gradebook hooks, …) |
-| `classes/event/` | course-module-viewed events |
+| `js/professor.js` | teacher monitor table (search + state filter; plain JS) |
+| `styles.css` | scoped under `.agon` (Moodle-blue theme) |
+| `pix/monologo.svg` | branded AGON puzzle-cube activity icon |
+| `lib.php` | Moodle callbacks (`agon_add_instance`, `agon_is_branded`, gradebook hooks, …) |
 | `prototype/` | standalone HTML/CSS/JS design mock (not shipped) |
 
-## 6. Next steps (Phase 2 — in progress)
+## 6. Next steps (Phase 2 tail → Phase 3)
 
-Decided 2026-06-09: build the **data model + server scoring engine** first; move the front end to **AMD + external web services** for start/submit. Order (full list in [plan.md](plan.md) §8):
+Steps 1–5, 8 and the PHPUnit half of 10 are **done** (full status in [plan.md](plan.md) §8). What's left:
 
-1. `agon_attempt` table + version bump (per-run row: times, state, total + per-game scores).
-2. Server-side scoring engine (the §4 rules) → real per-activity result; no grading in the browser.
-3. Answer-split: `view.php` stops shipping `correct`/`blanks` in `window.AGON`.
-4. AMD + web services (`start_attempt` / `submit` / `finish`) + one-attempt enforcement.
-5. Real cumulative course leaderboard + gradebook grade.
-6. `db/access.php` capabilities + real privacy provider.
-7. Server-enforced timers + per-attempt randomization.
-8. Real PHPUnit/Behat tests.
+1. **Gradebook (step 6).** Add a `grade` column to the `agon` table (the `lib.php` scaffold already references it), restore the grading section of the settings form, and wire `agon_update_grades` to push each student's score on submit/finish.
+2. **Capability branch (step 7).** Switch `view.php` from `moodle/course:manageactivities` to `mod/agon:manage` (the capability is already defined).
+3. **Server-enforced timers + randomization (step 9).** Stamp/check `timestart` server-side, randomise the question from the pool, and fix the two noted rare races.
+4. **Behat + CI (step 10)**, then **backup/restore** and the rest of Phase 3.
 
 ## 7. Deploying to a real (e.g. university) Moodle
 
