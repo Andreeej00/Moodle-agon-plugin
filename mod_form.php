@@ -76,91 +76,14 @@ class mod_agon_mod_form extends moodleform_mod {
         $mform->addElement('advcheckbox', 'gamecoding', 'Coding', 'Apply — drag options into code blanks');
         $mform->setDefault('gamecoding', 1);
 
-        // Editable example content for each selected game.
-        $cwexample = '{
-  "subject_code": "IT2012",
-  "week": 5,
-  "topic": "Tokenization",
-  "words": [
-    { "number": 1, "word": "TOKEN",  "clue": "Smallest unit of text after splitting", "direction": "across", "row": 0, "col": 0 },
-    { "number": 2, "word": "CORPUS", "clue": "A collection of text documents",        "direction": "down",   "row": 0, "col": 2 }
-  ]
-}';
-        $qexample = '{
-  "subject_code": "IT2012",
-  "week": 5,
-  "topic": "Tokenization",
-  "questions": [
-    { "question": "Which process splits text into tokens?", "options": ["Tokenization", "Lemmatization", "Normalization", "Vectorization"], "correct": 0, "explanation": "Tokenization breaks text into tokens." }
-  ]
-}';
-        $codeexample = '{
-  "subject_code": "IT2012",
-  "week": 5,
-  "sequences": [
-    { "title": "Tokenization", "code": "tokens = text.____()", "blanks": ["split"], "options": ["split", "lower", "len", "join", "strip"] }
-  ]
-}';
-
-        // --- Crossword content ---
-        $mform->addElement('static', 'cwguide', 'Crossword content',
-            'Paste JSON: <code>{ subject_code, week, topic, words:[{ number, word, clue, direction: across|down, row, col }] }</code>. First 3 finishers score 1.0, 4th&ndash;10th 0.75, rest 0.5 (no timer).');
-        $mform->addElement('textarea', 'contentcrossword', 'Crossword JSON', ['rows' => 12, 'cols' => 70]);
-        $mform->setType('contentcrossword', PARAM_RAW);
-        $mform->setDefault('contentcrossword', $cwexample);
-        $mform->hideIf('cwguide', 'gamecrossword', 'notchecked');
-        $mform->hideIf('contentcrossword', 'gamecrossword', 'notchecked');
-
-        // --- Question content ---
-        $mform->addElement('static', 'qguide', 'Question content',
-            'Paste JSON: <code>{ subject_code, week, topic, questions:[{ question, options:[...], correct: index, explanation }] }</code> &mdash; a pool of ~5 per week; each run serves <b>one</b> of them. Timed; correct = 1.0.');
-        $mform->addElement('textarea', 'contentquestion', 'Questions JSON', ['rows' => 12, 'cols' => 70]);
-        $mform->setType('contentquestion', PARAM_RAW);
-        $mform->setDefault('contentquestion', $qexample);
-        $mform->hideIf('qguide', 'gamequestion', 'notchecked');
-        $mform->hideIf('contentquestion', 'gamequestion', 'notchecked');
-
-        // --- Coding content ---
-        $mform->addElement('static', 'codeguide', 'Coding content',
-            'Paste JSON: <code>{ subject_code, week, sequences:[{ title, code (use ____ for blanks), blanks:[...], options:[...] }] }</code> &mdash; 2 sequences, &ge;3 blanks, &ge;5 options. Timed; 0.5 each, partial.');
-        $mform->addElement('textarea', 'contentcoding', 'Coding JSON', ['rows' => 12, 'cols' => 70]);
-        $mform->setType('contentcoding', PARAM_RAW);
-        $mform->setDefault('contentcoding', $codeexample);
-        $mform->hideIf('codeguide', 'gamecoding', 'notchecked');
-        $mform->hideIf('contentcoding', 'gamecoding', 'notchecked');
+        // Game content (crossword words, questions, coding sequences) is authored in
+        // the Question bank screen, not here — this form only picks which games run.
+        $mform->addElement('static', 'contentnote', '', get_string('questionbankintro', 'mod_agon'));
 
         // Add standard elements.
         $this->standard_coursemodule_elements();
 
         // Add standard buttons.
         $this->add_action_buttons();
-    }
-
-    /**
-     * Each enabled game must have valid JSON with its required list, otherwise
-     * the student play view would render an empty game.
-     *
-     * @param array $data Form data.
-     * @param array $files Form files.
-     * @return array Field errors.
-     */
-    public function validation($data, $files) {
-        $errors = parent::validation($data, $files);
-
-        $checks = [
-            'contentcrossword' => ['gamecrossword', 'words'],
-            'contentquestion' => ['gamequestion', 'questions'],
-            'contentcoding' => ['gamecoding', 'sequences'],
-        ];
-        foreach ($checks as $field => [$toggle, $key]) {
-            if (empty($data[$toggle])) {
-                continue;
-            }
-            $decoded = json_decode((string)($data[$field] ?? ''), true);
-            if (!is_array($decoded) || empty($decoded[$key]) || !is_array($decoded[$key])) {
-                $errors[$field] = get_string('invalidgamejson', 'mod_agon', $key);
-            }
-        }
-        return $errors;
     }
 }

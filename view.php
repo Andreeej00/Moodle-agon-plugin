@@ -42,6 +42,14 @@ require_login($course, true, $cm);
 
 $modulecontext = context_module::instance($cm->id);
 
+// Testing aid: reset this user's attempt so they can replay, gated by the site
+// 'testmode' setting (and sesskey). Real courses leave testmode off.
+if (optional_param('playagain', 0, PARAM_BOOL) && get_config('mod_agon', 'testmode')) {
+    require_sesskey();
+    \mod_agon\local\attempt::reset($moduleinstance->id, $USER->id);
+    redirect(new moodle_url('/mod/agon/view.php', ['id' => $cm->id]));
+}
+
 $event = \mod_agon\event\course_module_viewed::create([
     'objectid' => $moduleinstance->id,
     'context' => $modulecontext,
@@ -81,6 +89,8 @@ if ($view === 'student') {
         'crossword' => $public['crossword'],
         'questions' => $public['questions'],
         'coding' => $public['coding'],
+        // Testing mode → the play view shows a "Play again" (reset attempt) button.
+        'testmode' => (bool)get_config('mod_agon', 'testmode'),
         // The leaderboard is fetched live (mod_agon_get_leaderboard) once the run finishes.
     ];
 } else {
@@ -106,11 +116,17 @@ if ($view === 'student') {
     $PAGE->requires->js(new moodle_url($jsfile, ['v' => filemtime($CFG->dirroot . $jsfile)]), false);
 }
 
-echo $OUTPUT->header();
-echo $OUTPUT->render_from_template('mod_agon/' . $view, [
+$templatedata = [
     'name' => format_string($moduleinstance->name),
     'subject' => $topic,
     'week' => $week,
-]);
+];
+if ($view === 'student') {
+    // Show the crossword scoring blurb that matches the chosen grading mode.
+    $templatedata['cwregular'] = (($public['crossword']['grading'] ?? 'custom') === 'regular');
+}
+
+echo $OUTPUT->header();
+echo $OUTPUT->render_from_template('mod_agon/' . $view, $templatedata);
 echo html_writer::script('window.AGON = ' . json_encode($agondata, JSON_HEX_TAG | JSON_HEX_AMP) . ';');
 echo $OUTPUT->footer();

@@ -114,13 +114,22 @@ class attempt {
             case 'crossword':
                 $words = $content['crossword']['words'];
                 $entries = (array)($payload['entries'] ?? []);
-                $fraction = scoring::crossword_correct_fraction($words, $entries);
-                $priorsolvers = $DB->count_records_select(
-                    'agon_attempt',
-                    'agonid = :agonid AND id <> :id AND scorecrossword >= :full',
-                    ['agonid' => $attempt->agonid, 'id' => $attempt->id, 'full' => scoring::CROSSWORD_REST]
-                );
-                $score = scoring::score_crossword($fraction, $priorsolvers);
+                if (($content['crossword']['grading'] ?? 'custom') === 'regular') {
+                    // Regular: the score is just the fraction of fully-correct words (full solve = 1.0).
+                    $score = scoring::score_crossword_regular(
+                        scoring::crossword_correct_words_fraction($words, $entries)
+                    );
+                } else {
+                    // Custom (default): a full solve claims a finish-rank place (1.0 / 0.75 / 0.5);
+                    // a partial scores per-letter fraction × 0.5, capped at 0.49.
+                    $fraction = scoring::crossword_correct_fraction($words, $entries);
+                    $priorsolvers = $DB->count_records_select(
+                        'agon_attempt',
+                        'agonid = :agonid AND id <> :id AND scorecrossword >= :full',
+                        ['agonid' => $attempt->agonid, 'id' => $attempt->id, 'full' => scoring::CROSSWORD_REST]
+                    );
+                    $score = scoring::score_crossword($fraction, $priorsolvers);
+                }
                 $field = 'scorecrossword';
                 break;
             case 'question':
@@ -206,14 +215,14 @@ class attempt {
     }
 
     /**
-     * Spend this attempt's one hint for a game and return it.
+     * Spend this attempt's ONE hint (across the whole run) and return it.
      *
-     * Enforced server-side: a second hint for the same game is refused, so hints
-     * cannot be used as an answer oracle once answers leave the client.
+     * Enforced server-side: once any hint has been spent, every further hint is
+     * refused — so a single hint can't be milked into an answer oracle.
      *
      * @param stdClass $attempt The attempt (reloaded internally).
      * @param string $game crossword|question|coding
-     * @param array $payload Optional progress {filled: [...]} so the hint targets an empty cell/blank.
+     * @param array $payload Optional progress {filled: [...], seq: index} so the hint targets live cells/the open sequence.
      * @return array The hint.
      */
     public static function use_hint(stdClass $attempt, string $game, array $payload = []): array {
@@ -228,16 +237,16 @@ class attempt {
             throw new \moodle_exception('attemptnotinprogress', 'mod_agon');
         }
         $used = self::hints_used($attempt);
-        if (in_array($game, $used, true)) {
+        // One hint per attempt: any prior hint (on any game) locks it out.
+        if (!empty($used)) {
             throw new \moodle_exception('hintalreadyused', 'mod_agon');
         }
 
         $hint = content::hint($attempt->agonid, $game, $payload);
 
         // Only spend the hint if it actually revealed something: a crossword with
-        // every cell filled, or coding with no blank left, yields nothing — so the
-        // student keeps their hint rather than wasting it.
-        $usable = $game === 'question' || isset($hint['rc']) || isset($hint['seq']);
+        // every cell already filled reveals no letters — so the student keeps it.
+        $usable = !empty($hint['remove']) || !empty($hint['cells']) || !empty($hint['corrects']);
         if ($usable) {
             $used[] = $game;
             $attempt->hintsused = json_encode(array_values($used));
@@ -246,6 +255,21 @@ class attempt {
         }
 
         return $hint;
+    }
+
+    /**
+     * Delete this student's attempt so they can play the activity again.
+     *
+     * Testing aid only — gated by the site 'testmode' setting at the call site
+     * (view.php). Wipes the attempt row (and thus its leaderboard entry); the
+     * gradebook grade is recomputed on the next finish.
+     *
+     * @param int $agonid
+     * @param int $userid
+     */
+    public static function reset(int $agonid, int $userid): void {
+        global $DB;
+        $DB->delete_records('agon_attempt', ['agonid' => $agonid, 'userid' => $userid]);
     }
 
     /**

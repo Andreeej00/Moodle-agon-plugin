@@ -131,4 +131,47 @@ final class scoring_test extends \advanced_testcase {
         $this->assertEqualsWithDelta(0.5, scoring::crossword_rank_points(10), 1e-9);
         $this->assertEqualsWithDelta(0.5, scoring::crossword_rank_points(50), 1e-9);
     }
+
+    /**
+     * Regular grading: fraction of WHOLE words correct (a word needs every cell).
+     */
+    public function test_crossword_correct_words_fraction(): void {
+        // Two separate across words on different rows (no shared cells).
+        $words = [
+            ['word' => 'CAT', 'direction' => 'across', 'row' => 0, 'col' => 0],
+            ['word' => 'DOG', 'direction' => 'across', 'row' => 1, 'col' => 0],
+        ];
+        $both = ['0-0' => 'C', '0-1' => 'A', '0-2' => 'T', '1-0' => 'D', '1-1' => 'O', '1-2' => 'G'];
+        $this->assertEqualsWithDelta(1.0, scoring::crossword_correct_words_fraction($words, $both), 1e-9);
+
+        // First word fully right, second has one wrong letter → only 1 of 2 words counts.
+        $one = ['0-0' => 'c', '0-1' => 'a', '0-2' => 't', '1-0' => 'D', '1-1' => 'X', '1-2' => 'G'];
+        $this->assertEqualsWithDelta(0.5, scoring::crossword_correct_words_fraction($words, $one), 1e-9);
+
+        $this->assertEqualsWithDelta(0.0, scoring::crossword_correct_words_fraction($words, []), 1e-9);
+        $this->assertEqualsWithDelta(0.0, scoring::crossword_correct_words_fraction([], []), 1e-9);
+
+        // The teacher's example: 5 words, 2 fully correct → 0.40.
+        $five = [
+            ['word' => 'AA', 'direction' => 'across', 'row' => 0, 'col' => 0],
+            ['word' => 'BB', 'direction' => 'across', 'row' => 1, 'col' => 0],
+            ['word' => 'CC', 'direction' => 'across', 'row' => 2, 'col' => 0],
+            ['word' => 'DD', 'direction' => 'across', 'row' => 3, 'col' => 0],
+            ['word' => 'EE', 'direction' => 'across', 'row' => 4, 'col' => 0],
+        ];
+        $twogood = ['0-0' => 'A', '0-1' => 'A', '1-0' => 'B', '1-1' => 'B'];
+        $this->assertEqualsWithDelta(0.4, scoring::crossword_correct_words_fraction($five, $twogood), 1e-9);
+    }
+
+    /**
+     * Regular score = the word fraction as a point out of 1.0 (clamped, no cap).
+     */
+    public function test_score_crossword_regular(): void {
+        $this->assertEqualsWithDelta(1.0, scoring::score_crossword_regular(1.0), 1e-9);
+        $this->assertEqualsWithDelta(0.4, scoring::score_crossword_regular(0.4), 1e-9);
+        $this->assertEqualsWithDelta(0.0, scoring::score_crossword_regular(0.0), 1e-9);
+        // Clamped to [0, 1].
+        $this->assertEqualsWithDelta(1.0, scoring::score_crossword_regular(1.5), 1e-9);
+        $this->assertEqualsWithDelta(0.0, scoring::score_crossword_regular(-0.3), 1e-9);
+    }
 }

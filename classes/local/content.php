@@ -53,7 +53,11 @@ class content {
                 'topic' => $cw['topic'] ?? ($q['topic'] ?? ''),
                 'subject' => $cw['subject'] ?? ($cw['subject_code'] ?? ($q['subject_code'] ?? '')),
             ],
-            'crossword' => ['words' => $cw['words'] ?? []],
+            'crossword' => [
+                'words' => $cw['words'] ?? [],
+                // 'custom' = finish-rank scoring (default); 'regular' = per-word fraction of a point.
+                'grading' => (($cw['grading'] ?? 'custom') === 'regular') ? 'regular' : 'custom',
+            ],
             'questions' => $q['questions'] ?? [],
             'coding' => ['sequences' => $code['sequences'] ?? []],
         ];
@@ -63,8 +67,9 @@ class content {
      * Renderable content with every answer removed — safe to send to the browser.
      *
      * Crossword words lose their letters (only number/clue/direction/row/col + length
-     * remain); questions lose 'correct' and 'explanation'; coding sequences lose
-     * 'blanks' and 'explanation'.
+     * remain); questions lose 'correct' and 'explanation'; coding ships METADATA ONLY
+     * (title + line count) — each sequence's code + options are lazy-loaded one at a
+     * time via {@see coding_sequence_public()}, so the full set is never in the DOM.
      *
      * @param int $agonid
      * @return array{crossword: array, questions: array, coding: array}
@@ -93,20 +98,51 @@ class content {
             ];
         }
 
+        // Metadata only: the title + how many (non-empty) lines the sequence has, which
+        // is all the player needs up front (timer budget + progress). Code/options come
+        // per sequence from coding_sequence_public() as the student advances.
         $sequences = [];
         foreach ($raw['coding']['sequences'] as $s) {
-            $sequences[] = [
-                'title' => $s['title'] ?? '',
-                'code' => $s['code'] ?? '',
-                'options' => array_values($s['options'] ?? []),
-            ];
+            $code = (string)($s['code'] ?? '');
+            $lines = 0;
+            foreach (explode("\n", $code) as $line) {
+                if (trim($line) !== '') {
+                    $lines++;
+                }
+            }
+            $sequences[] = ['title' => $s['title'] ?? '', 'lines' => max(1, $lines)];
         }
 
         return [
             'meta' => $raw['meta'],
-            'crossword' => ['words' => $words],
+            // 'grading' is not an answer (it only picks the scoring rule), so it is safe
+            // to send: the student screen shows the matching scoring blurb + feedback.
+            'crossword' => ['words' => $words, 'grading' => $raw['crossword']['grading'] ?? 'custom'],
             'questions' => $questions,
             'coding' => ['sequences' => $sequences],
+        ];
+    }
+
+    /**
+     * One coding sequence's renderable data (title + code + options, NO answers).
+     *
+     * The lazy-load endpoint: the player fetches sequences one at a time so the full
+     * set of code/options is never present in the page at once.
+     *
+     * @param int $agonid
+     * @param int $index 0-based sequence index.
+     * @return array|null {title, code, options}, or null when the index is out of range.
+     */
+    public static function coding_sequence_public(int $agonid, int $index): ?array {
+        $sequences = self::raw($agonid)['coding']['sequences'];
+        if ($index < 0 || !isset($sequences[$index]) || !is_array($sequences[$index])) {
+            return null;
+        }
+        $s = $sequences[$index];
+        return [
+            'title' => $s['title'] ?? '',
+            'code' => $s['code'] ?? '',
+            'options' => array_values($s['options'] ?? []),
         ];
     }
 
@@ -141,6 +177,92 @@ class content {
         ];
     }
 
+    /** @var array<string,string> Game key => the agon table column that stores its JSON. */
+    const COLUMNS = [
+        'crossword' => 'contentcrossword',
+        'question' => 'contentquestion',
+        'coding' => 'contentcoding',
+    ];
+
+    /**
+     * Validate + save one game's content JSON (the Question bank authoring path).
+     *
+     * @param int $agonid
+     * @param string $game crossword|question|coding
+     * @param string $json The content as a JSON string.
+     * @throws \moodle_exception invalidgamejson when the JSON is malformed/incomplete.
+     */
+    public static function save_game(int $agonid, string $game, string $json): void {
+        global $DB;
+
+        if (!isset(self::COLUMNS[$game])) {
+            throw new \coding_exception('Unknown agon game: ' . $game);
+        }
+        $decoded = json_decode($json, true);
+        $missingkey = self::validate_game($game, $decoded);
+        if ($missingkey !== null) {
+            throw new \moodle_exception('invalidgamejson', 'mod_agon', '', $missingkey);
+        }
+        // Store canonical JSON, and touch the instance so caches/monitor stay fresh.
+        $DB->set_field('agon', self::COLUMNS[$game], json_encode($decoded), ['id' => $agonid]);
+        $DB->set_field('agon', 'timemodified', time(), ['id' => $agonid]);
+    }
+
+    /**
+     * Check a decoded game payload has the shape the player + scoring need.
+     *
+     * @param string $game crossword|question|coding
+     * @param mixed $decoded The json_decode(..., true) result.
+     * @return string|null The required list name if invalid, or null when valid.
+     */
+    public static function validate_game(string $game, $decoded): ?string {
+        if (!is_array($decoded)) {
+            return self::COLUMNS[$game] ?? $game;
+        }
+        switch ($game) {
+            case 'crossword':
+                $words = $decoded['words'] ?? null;
+                if (!is_array($words) || count($words) < 1) {
+                    return 'words';
+                }
+                foreach ($words as $w) {
+                    if (!is_array($w) || (string)($w['word'] ?? '') === ''
+                            || !in_array($w['direction'] ?? '', ['across', 'down'], true)
+                            || !isset($w['row']) || !isset($w['col'])) {
+                        return 'words';
+                    }
+                }
+                return null;
+            case 'question':
+                $questions = $decoded['questions'] ?? null;
+                if (!is_array($questions) || count($questions) < 1) {
+                    return 'questions';
+                }
+                foreach ($questions as $q) {
+                    $options = $q['options'] ?? null;
+                    if (!is_array($q) || (string)($q['question'] ?? '') === ''
+                            || !is_array($options) || count($options) < 2 || !isset($q['correct'])) {
+                        return 'questions';
+                    }
+                }
+                return null;
+            case 'coding':
+                $sequences = $decoded['sequences'] ?? null;
+                if (!is_array($sequences) || count($sequences) < 1) {
+                    return 'sequences';
+                }
+                foreach ($sequences as $s) {
+                    if (!is_array($s) || (string)($s['code'] ?? '') === ''
+                            || !is_array($s['blanks'] ?? null) || !is_array($s['options'] ?? null)) {
+                        return 'sequences';
+                    }
+                }
+                return null;
+            default:
+                return $game;
+        }
+    }
+
     /**
      * Answers + explanation for a game, revealed after the student submits it.
      *
@@ -173,9 +295,13 @@ class content {
                     'explanation' => $q['explanation'] ?? '',
                 ];
             case 'coding':
+                // Include title + code here: after submit the review re-renders every
+                // sequence, and by then it is lazy-loaded out of the page.
                 $sequences = [];
                 foreach ($raw['coding']['sequences'] as $s) {
                     $sequences[] = [
+                        'title' => $s['title'] ?? '',
+                        'code' => $s['code'] ?? '',
                         'blanks' => array_values($s['blanks'] ?? []),
                         'explanation' => $s['explanation'] ?? '',
                     ];
@@ -187,13 +313,14 @@ class content {
     }
 
     /**
-     * One hint for a game: a crossword letter, the question explanation, or the next
-     * code blank. Honours the student's current progress (passed in $payload) so a
-     * crossword/coding hint targets a cell/blank they have not filled.
+     * The one hint for an attempt, shaped by the game it is spent on: crossword reveals
+     * ceil(words/2) random unfilled letters, question marks the correct option, coding
+     * marks the correct option(s) for the sequence in view. Honours the student's current
+     * progress (passed in $payload) so the crossword hint targets cells they have not filled.
      *
      * @param int $agonid
      * @param string $game crossword|question|coding
-     * @param array $payload Optional {filled: [keys]} of cells/blanks already filled.
+     * @param array $payload Optional {filled: [keys], seq: index} — progress + open coding sequence.
      * @return array The hint (its shape depends on the game).
      */
     public static function hint(int $agonid, string $game, array $payload = []): array {
@@ -202,25 +329,41 @@ class content {
 
         switch ($game) {
             case 'crossword':
-                $solution = scoring::crossword_solution($raw['crossword']['words']);
-                $candidates = array_diff(array_keys($solution), $filled);
-                if (empty($candidates)) {
-                    return ['type' => 'crossword'];
+                $words = $raw['crossword']['words'];
+                $solution = scoring::crossword_solution($words);
+                $candidates = array_values(array_diff(array_keys($solution), $filled));
+                // Reveal half the puzzle (by word count), rounded up, at random cells.
+                $reveal = (int)ceil(max(1, count($words)) / 2);
+                shuffle($candidates);
+                $cells = [];
+                foreach (array_slice($candidates, 0, $reveal) as $rc) {
+                    $cells[] = ['rc' => $rc, 'letter' => $solution[$rc]];
                 }
-                $key = $candidates[array_rand($candidates)];
-                return ['type' => 'crossword', 'rc' => $key, 'letter' => $solution[$key]];
+                return ['type' => 'crossword', 'cells' => $cells];
             case 'question':
+                // 50/50-style hint: eliminate floor(options/2) of the WRONG options.
                 $q = $raw['questions'][0] ?? [];
-                return ['type' => 'question', 'explanation' => $q['explanation'] ?? ''];
-            case 'coding':
-                foreach ($raw['coding']['sequences'] as $si => $s) {
-                    foreach (array_values($s['blanks'] ?? []) as $b => $value) {
-                        if (!in_array($si . '-' . $b, $filled, true)) {
-                            return ['type' => 'coding', 'seq' => $si, 'b' => $b, 'value' => $value];
-                        }
+                $options = array_values($q['options'] ?? []);
+                $correct = isset($q['correct']) ? (int)$q['correct'] : -1;
+                $wrong = [];
+                foreach ($options as $i => $unused) {
+                    if ($i !== $correct) {
+                        $wrong[] = $i;
                     }
                 }
-                return ['type' => 'coding'];
+                shuffle($wrong);
+                $remove = array_slice($wrong, 0, (int)floor(count($options) / 2));
+                sort($remove);
+                return ['type' => 'question', 'remove' => array_values($remove)];
+            case 'coding':
+                $sequences = $raw['coding']['sequences'];
+                $si = isset($payload['seq']) ? (int)$payload['seq'] : 0;
+                if (!isset($sequences[$si])) {
+                    $si = 0;
+                }
+                $seq = $sequences[$si] ?? [];
+                $corrects = array_values(array_unique(array_map('strval', array_values($seq['blanks'] ?? []))));
+                return ['type' => 'coding', 'seq' => $si, 'corrects' => $corrects];
             default:
                 return [];
         }

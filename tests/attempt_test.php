@@ -113,6 +113,22 @@ final class attempt_test extends \advanced_testcase {
         $this->assertEqualsWithDelta(0.2, $score, 1e-9);
     }
 
+    public function test_submit_crossword_regular_grading_scores_per_word(): void {
+        // A separate instance graded "regular": score = fraction of whole words.
+        $course = $this->getDataGenerator()->create_course();
+        $crossword = json_encode(['grading' => 'regular', 'words' => [
+            ['number' => 1, 'word' => 'CAT', 'direction' => 'across', 'row' => 0, 'col' => 0],
+            ['number' => 2, 'word' => 'DOG', 'direction' => 'across', 'row' => 1, 'col' => 0],
+        ]]);
+        $agon = $this->getDataGenerator()->create_module('agon',
+            ['course' => $course->id, 'contentcrossword' => $crossword]);
+        $a = attempt::start($agon->id, $this->getDataGenerator()->create_user()->id);
+
+        // CAT fully right, DOG has one wrong letter → 1 of 2 words = 0.5 (custom mode would cap ~0.42).
+        $entries = ['0-0' => 'C', '0-1' => 'A', '0-2' => 'T', '1-0' => 'D', '1-1' => 'X', '1-2' => 'G'];
+        $this->assertEqualsWithDelta(0.5, attempt::submit_game($a, 'crossword', ['entries' => $entries])['score'], 1e-9);
+    }
+
     public function test_total_accumulates_across_games_then_finishes(): void {
         global $DB;
         $user = $this->getDataGenerator()->create_user();
@@ -169,13 +185,13 @@ final class attempt_test extends \advanced_testcase {
     public function test_unusable_hint_is_not_spent(): void {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);
-        // Every crossword cell already filled → no cell to reveal, so the hint is refunded.
+        // Every crossword cell already filled → nothing to reveal, so the hint is refunded.
         $hint = attempt::use_hint($a, 'crossword', ['filled' => array_keys($this->full_crossword())]);
-        $this->assertArrayNotHasKey('rc', $hint);
+        $this->assertSame([], $hint['cells']);
         $this->assertSame([], attempt::hints_used(attempt::get($a->id)));
-        // It can still be used afterwards: a real cell is revealed and the hint is now spent.
+        // It can still be used afterwards: real cells are revealed and the hint is now spent.
         $again = attempt::use_hint($a, 'crossword', ['filled' => ['0-0']]);
-        $this->assertArrayHasKey('letter', $again);
+        $this->assertNotEmpty($again['cells']);
         $this->assertSame(['crossword'], attempt::hints_used(attempt::get($a->id)));
     }
 
@@ -188,13 +204,14 @@ final class attempt_test extends \advanced_testcase {
         attempt::submit_game($a, 'question', ['selected' => 0]);
     }
 
-    public function test_hint_is_once_per_game(): void {
+    public function test_hint_is_once_per_attempt(): void {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);
         $hint = attempt::use_hint($a, 'question');
         $this->assertSame('question', $hint['type']);
         $this->assertEquals(['question'], attempt::hints_used(attempt::get($a->id)));
+        // The one hint is spent for the whole attempt — a different game is refused too.
         $this->expectException(\moodle_exception::class);
-        attempt::use_hint($a, 'question');
+        attempt::use_hint($a, 'crossword', ['filled' => ['0-0']]);
     }
 }

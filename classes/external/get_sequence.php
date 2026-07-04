@@ -20,16 +20,19 @@ use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
-use mod_agon\local\attempt;
+use mod_agon\local\content;
 
 /**
- * Web service: spend the attempt's one hint for a game.
+ * Web service: fetch one coding sequence (title + code + options, no answers).
+ *
+ * The lazy-load endpoint — the player pulls sequences one at a time as the student
+ * advances, so the full set of code/options is never present in the page at once.
  *
  * @package     mod_agon
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class get_hint extends external_api {
+class get_sequence extends external_api {
     use uses_agon_context;
 
     /**
@@ -40,34 +43,26 @@ class get_hint extends external_api {
     public static function execute_parameters(): external_function_parameters {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module id of the agon activity'),
-            'game' => new external_value(PARAM_ALPHA, 'Game key: crossword, question or coding'),
-            'payload' => new external_value(PARAM_RAW, 'JSON of current progress, e.g. {filled:[...]}', VALUE_DEFAULT, '{}'),
+            'index' => new external_value(PARAM_INT, '0-based coding sequence index'),
         ]);
     }
 
     /**
-     * Return the hint for a game (server enforces a single hint per attempt).
+     * Return the requested coding sequence's renderable data (no answers).
      *
      * @param int $cmid Course module id.
-     * @param string $game Game key.
-     * @param string $payload JSON progress.
-     * @return array {hint: JSON}.
+     * @param int $index 0-based sequence index.
+     * @return array {sequence: JSON of {title, code, options}}
      */
-    public static function execute(int $cmid, string $game, string $payload = '{}'): array {
-        global $USER;
-
-        $params = self::validate_parameters(self::execute_parameters(),
-            ['cmid' => $cmid, 'game' => $game, 'payload' => $payload]);
+    public static function execute(int $cmid, int $index): array {
+        $params = self::validate_parameters(self::execute_parameters(), ['cmid' => $cmid, 'index' => $index]);
         $cm = self::setup_play_context($params['cmid']);
 
-        $progress = json_decode($params['payload'], true);
-        if (!is_array($progress)) {
-            $progress = [];
+        $sequence = content::coding_sequence_public($cm->instance, $params['index']);
+        if ($sequence === null) {
+            throw new \moodle_exception('invalidsequence', 'mod_agon');
         }
-
-        $attempt = attempt::start($cm->instance, $USER->id);
-        $hint = attempt::use_hint($attempt, $params['game'], $progress);
-        return ['hint' => json_encode($hint)];
+        return ['sequence' => json_encode($sequence)];
     }
 
     /**
@@ -77,7 +72,7 @@ class get_hint extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'hint' => new external_value(PARAM_RAW, 'JSON-encoded hint for the game'),
+            'sequence' => new external_value(PARAM_RAW, 'JSON of the coding sequence: {title, code, options}'),
         ]);
     }
 }

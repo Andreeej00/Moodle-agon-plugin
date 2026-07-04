@@ -85,5 +85,5 @@ AJAX-only external functions the AMD player calls (shared context/return traits 
 
 ## Testing
 
-- **moodle-docker** for a local Moodle + DB (see `HANDOVER.md`).
+- **moodle-docker** for a local Moodle + DB (see `README.md`).
 - **PHPUnit** across `tests/`: `scoring`, `attempt`, `content`, `leaderboard`, `external/services`, `privacy/provider`. **(planned)** Behat for the play flow + `moodle-plugin-ci` in CI.

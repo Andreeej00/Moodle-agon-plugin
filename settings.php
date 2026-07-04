@@ -28,8 +28,34 @@ defined('MOODLE_INTERNAL') || die();
 if ($hassiteconfig) {
     $settings = new admin_settingpage('mod_agon_settings', new lang_string('pluginname', 'mod_agon'));
 
-    // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
     if ($ADMIN->fulltree) {
-        // TO-DO: Define actual plugin settings page and add it to the tree - {@link https://docs.moodle.org/dev/Admin_settings}.
+        $settings->add(new admin_setting_heading('mod_agon/aihdr',
+            new lang_string('aisettings', 'mod_agon'), ''));
+
+        $settings->add(new admin_setting_configcheckbox('mod_agon/aienable',
+            new lang_string('aienable', 'mod_agon'),
+            new lang_string('aienable_desc', 'mod_agon'), 0));
+
+        $settings->add(new admin_setting_configselect('mod_agon/aiprovider',
+            new lang_string('aiprovider', 'mod_agon'),
+            new lang_string('aiprovider_desc', 'mod_agon'), 'google',
+            ['google' => 'Google (Gemini)', 'anthropic' => 'Claude', 'openai' => 'ChatGPT']));
+
+        // The default key can also live in config.php as
+        // $CFG->forced_plugin_settings['mod_agon']['aiapikey'] (a file-based secret).
+        $settings->add(new admin_setting_configpasswordunmask('mod_agon/aiapikey',
+            new lang_string('aiapikey', 'mod_agon'),
+            new lang_string('aiapikey_desc', 'mod_agon'), ''));
+
+        $settings->add(new admin_setting_configtext('mod_agon/aimodel',
+            new lang_string('aimodel', 'mod_agon'),
+            new lang_string('aimodel_desc', 'mod_agon'), 'gemini-2.5-flash', PARAM_RAW_TRIMMED));
+
+        $settings->add(new admin_setting_heading('mod_agon/testhdr',
+            new lang_string('testsettings', 'mod_agon'), ''));
+
+        $settings->add(new admin_setting_configcheckbox('mod_agon/testmode',
+            new lang_string('testmode', 'mod_agon'),
+            new lang_string('testmode_desc', 'mod_agon'), 0));
     }
 }

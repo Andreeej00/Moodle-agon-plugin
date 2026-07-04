@@ -300,4 +300,32 @@ function agon_extend_navigation($agonnode, $course, $module, $cm) {
  * @param navigation_node $agonnode {@see navigation_node}
  */
 function agon_extend_settings_navigation($settingsnav, $agonnode = null) {
+    if (!$agonnode || $agonnode->get('agonbank')) {
+        // No node to extend, or the tab was already added on an earlier nav pass.
+        return;
+    }
+    // The cm is normally on the page; on some nav passes it is not yet set, so
+    // fall back to the module context (this hook only fires on agon module pages).
+    $page = $settingsnav->get_page();
+    $cm = $page->cm;
+    if (!$cm && !empty($page->context) && $page->context->contextlevel == CONTEXT_MODULE) {
+        $cm = get_coursemodule_from_id('agon', $page->context->instanceid, 0, false, IGNORE_MISSING);
+    }
+    if (empty($cm) || $cm->modname !== 'agon') {
+        return;
+    }
+    $context = context_module::instance($cm->id, IGNORE_MISSING);
+    // Only content managers (teachers/assistants) get the authoring screen.
+    if (!$context || !has_capability('mod/agon:manage', $context)) {
+        return;
+    }
+    // TYPE_CUSTOM so it surfaces as a tab in the activity's secondary navigation.
+    $agonnode->add(
+        get_string('questionbank', 'mod_agon'),
+        new moodle_url('/mod/agon/bank.php', ['id' => $cm->id]),
+        navigation_node::TYPE_CUSTOM,
+        null,
+        'agonbank',
+        new pix_icon('i/questions', '')
+    );
 }

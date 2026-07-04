@@ -20,16 +20,16 @@ use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_single_structure;
 use core_external\external_value;
-use mod_agon\local\attempt;
+use mod_agon\local\content;
 
 /**
- * Web service: spend the attempt's one hint for a game.
+ * Web service: save one game's content JSON (Question bank authoring).
  *
  * @package     mod_agon
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class get_hint extends external_api {
+class save_content extends external_api {
     use uses_agon_context;
 
     /**
@@ -41,33 +41,29 @@ class get_hint extends external_api {
         return new external_function_parameters([
             'cmid' => new external_value(PARAM_INT, 'Course module id of the agon activity'),
             'game' => new external_value(PARAM_ALPHA, 'Game key: crossword, question or coding'),
-            'payload' => new external_value(PARAM_RAW, 'JSON of current progress, e.g. {filled:[...]}', VALUE_DEFAULT, '{}'),
+            'content' => new external_value(PARAM_RAW, 'JSON-encoded content for the game'),
         ]);
     }
 
     /**
-     * Return the hint for a game (server enforces a single hint per attempt).
+     * Validate and store the game content.
      *
      * @param int $cmid Course module id.
      * @param string $game Game key.
-     * @param string $payload JSON progress.
-     * @return array {hint: JSON}.
+     * @param string $content JSON-encoded content.
+     * @return array {status: 'ok'}
      */
-    public static function execute(int $cmid, string $game, string $payload = '{}'): array {
-        global $USER;
-
+    public static function execute(int $cmid, string $game, string $content): array {
         $params = self::validate_parameters(self::execute_parameters(),
-            ['cmid' => $cmid, 'game' => $game, 'payload' => $payload]);
-        $cm = self::setup_play_context($params['cmid']);
+            ['cmid' => $cmid, 'game' => $game, 'content' => $content]);
+        $cm = self::require_cm($params['cmid'], 'mod/agon:manage');
 
-        $progress = json_decode($params['payload'], true);
-        if (!is_array($progress)) {
-            $progress = [];
+        if (!isset(content::COLUMNS[$params['game']])) {
+            throw new \invalid_parameter_exception('Unknown game: ' . $params['game']);
         }
+        content::save_game($cm->instance, $params['game'], $params['content']);
 
-        $attempt = attempt::start($cm->instance, $USER->id);
-        $hint = attempt::use_hint($attempt, $params['game'], $progress);
-        return ['hint' => json_encode($hint)];
+        return ['status' => 'ok'];
     }
 
     /**
@@ -77,7 +73,7 @@ class get_hint extends external_api {
      */
     public static function execute_returns(): external_single_structure {
         return new external_single_structure([
-            'hint' => new external_value(PARAM_RAW, 'JSON-encoded hint for the game'),
+            'status' => new external_value(PARAM_ALPHA, 'ok on success'),
         ]);
     }
 }

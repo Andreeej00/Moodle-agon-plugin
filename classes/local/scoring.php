@@ -133,6 +133,50 @@ class scoring {
     }
 
     /**
+     * Fraction (0.0–1.0) of crossword WORDS the student got fully correct.
+     *
+     * A word counts only when every one of its cells matches. Used by the
+     * "regular" grading mode, where the score is simply this fraction of a point
+     * (e.g. 4 of 10 words right = 0.40).
+     *
+     * @param array $words The crossword words (each with word/direction/row/col).
+     * @param array $entries Map of "row-col" => the letter the student typed.
+     * @return float 0.0–1.0.
+     */
+    public static function crossword_correct_words_fraction(array $words, array $entries): float {
+        $words = array_values($words);
+        $total = count($words);
+        if ($total === 0) {
+            return 0.0;
+        }
+        $correctwords = 0;
+        foreach ($words as $w) {
+            $word = (string)($w['word'] ?? '');
+            $row = (int)($w['row'] ?? 0);
+            $col = (int)($w['col'] ?? 0);
+            $across = ($w['direction'] ?? 'across') === 'across';
+            $len = function_exists('mb_strlen') ? mb_strlen($word) : strlen($word);
+            if ($len === 0) {
+                continue;
+            }
+            $ok = true;
+            for ($i = 0; $i < $len; $i++) {
+                $r = $across ? $row : $row + $i;
+                $c = $across ? $col + $i : $col;
+                $want = function_exists('mb_substr') ? mb_substr($word, $i, 1) : substr($word, $i, 1);
+                if (strtoupper((string)($entries[$r . '-' . $c] ?? '')) !== strtoupper($want)) {
+                    $ok = false;
+                    break;
+                }
+            }
+            if ($ok) {
+                $correctwords++;
+            }
+        }
+        return $correctwords / $total;
+    }
+
+    /**
      * Whether the student fully solved the crossword (every cell correct).
      *
      * @param array $words The crossword words.
@@ -159,6 +203,17 @@ class scoring {
             return self::crossword_rank_points($priorsolvers);
         }
         return min($fraction * self::CROSSWORD_REST, self::CROSSWORD_PARTIAL_MAX);
+    }
+
+    /**
+     * "Regular" crossword score: the fraction of fully-correct words as a point
+     * out of 1.0 — a full solve = 1.0, with no finish-rank bonus and no partial cap.
+     *
+     * @param float $wordfraction Fraction (0.0–1.0) of words fully correct.
+     * @return float 0.0–1.0.
+     */
+    public static function score_crossword_regular(float $wordfraction): float {
+        return max(0.0, min(1.0, $wordfraction));
     }
 
     /**

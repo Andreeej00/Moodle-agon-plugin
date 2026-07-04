@@ -1,0 +1,22 @@
+{{!
+    Question bank (teacher authoring) for mod_agon.
+    The three game panels are built by amd/src/bank.js from window.AGON_BANK.
+}}
+<div class="agon agon-bank">
+  <div id="agon-bank" class="bank-wrap">
+    <div id="bank-live" class="sr-only" role="status" aria-live="polite"></div>
+    <p class="bank-intro">
+      Add each game&rsquo;s content below. Choose which games this activity runs in the
+      <a href="{{settingsurl}}">activity settings</a>.
+    </p>
+    <div id="bank-ai-top"></div>
+    <div class="bank-modebar">
+      <span class="bank-modelabel">Input mode</span>
+      <div class="bank-seg" role="group" aria-label="Input mode">
+        <button type="button" class="bank-segbtn is-on" data-mode="manual" aria-pressed="true">Manual</button>
+        <button type="button" class="bank-segbtn" data-mode="json" aria-pressed="false">JSON</button>
+      </div>
+    </div>
+    <div id="bank-panels"></div>
+  </div>
+</div>

@@ -77,7 +77,7 @@ final class services_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $finished['timefinish']);
     }
 
-    public function test_get_hint_returns_explanation(): void {
+    public function test_get_hint_eliminates_wrong_answers(): void {
         $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
         $this->setUser($student);
 
@@ -86,7 +86,9 @@ final class services_test extends \advanced_testcase {
             get_hint::execute($this->agon->cmid, 'question', '{}'));
         $hint = json_decode($result['hint'], true);
         $this->assertSame('question', $hint['type']);
-        $this->assertSame('B.', $hint['explanation']);
+        // 3 options, correct = 1 → one wrong option removed, and it is never the answer.
+        $this->assertCount(1, $hint['remove']);
+        $this->assertNotContains(1, $hint['remove']);
     }
 
     public function test_get_leaderboard_lists_the_current_user(): void {
@@ -107,5 +109,27 @@ final class services_test extends \advanced_testcase {
         $this->setUser($teacher);
         $this->expectException(\required_capability_exception::class);
         start_attempt::execute($this->agon->cmid);
+    }
+
+    public function test_get_sequence_serves_one_coding_sequence_without_answers(): void {
+        $coding = json_encode(['sequences' => [
+            ['title' => 'S1', 'code' => 'a = ____', 'blanks' => ['x'], 'options' => ['x', 'y']],
+            ['title' => 'S2', 'code' => 'b = ____', 'blanks' => ['z'], 'options' => ['z', 'w']],
+        ]]);
+        $agon = $this->getDataGenerator()->create_module('agon',
+            ['course' => $this->course->id, 'contentcoding' => $coding]);
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+
+        $result = external_api::clean_returnvalue(
+            get_sequence::execute_returns(), get_sequence::execute($agon->cmid, 1));
+        $seq = json_decode($result['sequence'], true);
+        $this->assertSame('S2', $seq['title']);
+        $this->assertSame(['z', 'w'], $seq['options']);
+        $this->assertArrayNotHasKey('blanks', $seq);
+
+        // Out-of-range index is rejected.
+        $this->expectException(\moodle_exception::class);
+        get_sequence::execute($agon->cmid, 9);
     }
 }

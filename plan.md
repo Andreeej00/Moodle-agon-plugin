@@ -39,7 +39,7 @@ Across the attempt: **one hint**, **one attempt**. Timers shown on question + co
 Goal: **honest play faster than cheating**. **Implemented (UI):** a **Start gate** that hides the question/code until the student commits, then a **countdown** (10s / 45s, auto-submit on time-up); blurred question options; progressive coding reveal with previous-line locking; crossword is the shareable low-stakes warm-up. **Now server-side:** authoritative scoring + the **answer-split** (answers stay on the server, never in `window.AGON`; each game's answers + explanation are revealed only *after* it is submitted); **one attempt + one hint per game** enforced. **Still to do (step 9):** server-enforced timers and per-attempt randomization — today the countdown is client-side display only.
 
 ## 7. Testing & dev environment
-- **moodle-docker** runs Moodle 4.5 LTS; the plugin lives at `mod/agon`. See `HANDOVER.md` for the exact setup, test accounts, and gotchas.
+- **moodle-docker** runs Moodle 4.5 LTS; the plugin lives at `mod/agon`. See `README.md` for the exact setup, test accounts, and gotchas.
 - **Quality (planned):** Moodle coding style + `moodle-plugin-ci`; PHPUnit on the engine; Behat for flows.
 
 ## 8. Phased roadmap

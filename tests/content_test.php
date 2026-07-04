@@ -65,10 +65,22 @@ final class content_test extends \advanced_testcase {
         $this->assertArrayNotHasKey('correct', $question);
         $this->assertArrayNotHasKey('explanation', $question);
 
+        // Coding is METADATA only up front (title + line count); code/options are lazy-loaded.
         $seq = $public['coding']['sequences'][0];
+        $this->assertSame('S1', $seq['title']);
+        $this->assertSame(1, $seq['lines']);
+        $this->assertArrayNotHasKey('code', $seq);
+        $this->assertArrayNotHasKey('options', $seq);
+        $this->assertArrayNotHasKey('blanks', $seq);
+    }
+
+    public function test_coding_sequence_public_serves_one_sequence_without_answers(): void {
+        $seq = content::coding_sequence_public($this->agon->id, 0);
+        $this->assertSame('S1', $seq['title']);
+        $this->assertSame('a = ____', $seq['code']);
         $this->assertSame(['x', 'y'], $seq['options']);
         $this->assertArrayNotHasKey('blanks', $seq);
-        $this->assertArrayNotHasKey('explanation', $seq);
+        $this->assertNull(content::coding_sequence_public($this->agon->id, 5));
     }
 
     public function test_feedback_reveals_answers(): void {
@@ -85,25 +97,26 @@ final class content_test extends \advanced_testcase {
         $this->assertSame('x fits.', $code['sequences'][0]['explanation']);
     }
 
-    public function test_hint_question_returns_explanation(): void {
+    public function test_hint_question_eliminates_wrong_answers(): void {
+        // 3 options, correct = 1 → floor(3/2) = 1 wrong option removed (never the correct one).
         $hint = content::hint($this->agon->id, 'question');
         $this->assertSame('question', $hint['type']);
-        $this->assertSame('B is right.', $hint['explanation']);
+        $this->assertCount(1, $hint['remove']);
+        $this->assertNotContains(1, $hint['remove']);
     }
 
-    public function test_hint_crossword_targets_an_unfilled_cell(): void {
+    public function test_hint_crossword_reveals_random_unfilled_letters(): void {
+        // One word (TOKEN) → ceil(1/2) = 1 letter revealed, at the only unfilled cell.
         $hint = content::hint($this->agon->id, 'crossword', ['filled' => ['0-0', '0-1', '0-2', '0-3']]);
         $this->assertSame('crossword', $hint['type']);
-        $this->assertSame('0-4', $hint['rc']);
-        $this->assertSame('N', $hint['letter']);
+        $this->assertSame([['rc' => '0-4', 'letter' => 'N']], $hint['cells']);
     }
 
-    public function test_hint_coding_returns_the_next_blank(): void {
-        $hint = content::hint($this->agon->id, 'coding', ['filled' => []]);
+    public function test_hint_coding_marks_the_correct_options(): void {
+        $hint = content::hint($this->agon->id, 'coding', ['seq' => 0]);
         $this->assertSame('coding', $hint['type']);
         $this->assertSame(0, $hint['seq']);
-        $this->assertSame(0, $hint['b']);
-        $this->assertSame('x', $hint['value']);
+        $this->assertSame(['x'], $hint['corrects']);
     }
 
     public function test_playable_games_requires_toggle_and_content(): void {
@@ -124,5 +137,38 @@ final class content_test extends \advanced_testcase {
         $agon->contentcrossword = '{not json';
         $agon->gamecrossword = 1;
         $this->assertFalse(content::playable_games($agon)['crossword']);
+    }
+
+    public function test_crossword_grading_defaults_to_custom(): void {
+        // The setUp crossword has no 'grading' key.
+        $this->assertSame('custom', content::raw($this->agon->id)['crossword']['grading']);
+        $this->assertSame('custom', content::public_for_render($this->agon->id)['crossword']['grading']);
+    }
+
+    public function test_save_game_stores_valid_content_and_grading(): void {
+        content::save_game($this->agon->id, 'crossword', json_encode(['grading' => 'regular', 'words' => [
+            ['number' => 1, 'word' => 'CAT', 'clue' => 'Pet', 'direction' => 'across', 'row' => 0, 'col' => 0],
+        ]]));
+        $raw = content::raw($this->agon->id);
+        $this->assertSame('regular', $raw['crossword']['grading']);
+        $this->assertSame('CAT', $raw['crossword']['words'][0]['word']);
+    }
+
+    public function test_save_game_rejects_invalid_content(): void {
+        $this->expectException(\moodle_exception::class);
+        content::save_game($this->agon->id, 'question', json_encode(['questions' => []]));
+    }
+
+    public function test_validate_game(): void {
+        $this->assertNull(content::validate_game('question',
+            ['questions' => [['question' => 'Q', 'options' => ['a', 'b'], 'correct' => 0]]]));
+        $this->assertSame('questions', content::validate_game('question', ['questions' => []]));
+        $this->assertSame('words', content::validate_game('crossword',
+            ['words' => [['word' => '', 'direction' => 'across', 'row' => 0, 'col' => 0]]]));
+        $this->assertNull(content::validate_game('crossword',
+            ['words' => [['word' => 'CAT', 'direction' => 'across', 'row' => 0, 'col' => 0]]]));
+        $this->assertNull(content::validate_game('coding',
+            ['sequences' => [['code' => 'a = ____', 'blanks' => ['x'], 'options' => ['x', 'y']]]]));
+        $this->assertSame('sequences', content::validate_game('coding', ['sequences' => [['code' => '']]]));
     }
 }
