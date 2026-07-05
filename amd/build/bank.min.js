@@ -361,12 +361,13 @@ define(['mod_agon/crossword', 'core/ajax', 'core/notification'], function(CW, Aj
                 }, updateStatus);
                 p.body.appendChild(sv.row);
 
-                // Prefill from saved layout (map built words -> {word, clue}).
+                // Prefill from the saved layout only; a new activity starts empty
+                // (renderManual seeds three blank word rows for the teacher to fill).
                 var saved = D.crossword || {};
                 var initWords = (saved.words || []).map(function(w) { return {word: w.word, clue: w.clue}; });
                 var initObj = initWords.length ? {words: initWords, grading: saved.grading} : null;
                 renderManual(initObj);
-                jsonEl.value = pretty(initObj || {grading: 'custom', words: [{word: 'TOKEN', clue: 'Smallest unit of text after splitting'}]});
+                jsonEl.value = pretty(initObj || {grading: 'custom', words: []});
                 updateStatus();
 
                 return {
@@ -461,9 +462,10 @@ define(['mod_agon/crossword', 'core/ajax', 'core/notification'], function(CW, Aj
                 }, updateStatus);
                 p.body.appendChild(sv.row);
 
+                // Prefill from saved content only; a new activity starts empty
+                // (renderManual seeds one blank question for the teacher to fill).
                 var saved = D.question || {};
-                var initObj = (saved.questions && saved.questions.length) ? saved
-                    : {questions: [{question: 'Which process splits text into tokens?', options: ['Tokenization', 'Lemmatization', 'Normalization', 'Vectorization'], correct: 0, explanation: 'Tokenization breaks text into tokens.'}]};
+                var initObj = (saved.questions && saved.questions.length) ? saved : {questions: []};
                 renderManual(initObj);
                 jsonEl.value = pretty(initObj);
                 updateStatus();
@@ -551,9 +553,10 @@ define(['mod_agon/crossword', 'core/ajax', 'core/notification'], function(CW, Aj
                 }, updateStatus);
                 p.body.appendChild(sv.row);
 
+                // Prefill from saved content only; a new activity starts empty
+                // (renderManual seeds one blank sequence for the teacher to fill).
                 var saved = D.coding || {};
-                var initObj = (saved.sequences && saved.sequences.length) ? saved
-                    : {sequences: [{title: 'Tokenization', code: 'tokens = text.____()', blanks: ['split'], options: ['split', 'lower', 'len', 'join', 'strip'], explanation: 'str.split() breaks the text into a list of tokens.'}]};
+                var initObj = (saved.sequences && saved.sequences.length) ? saved : {sequences: []};
                 renderManual(initObj);
                 jsonEl.value = pretty(initObj);
                 updateStatus();
