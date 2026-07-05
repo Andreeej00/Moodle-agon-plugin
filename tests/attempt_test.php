@@ -106,11 +106,25 @@ final class attempt_test extends \advanced_testcase {
         $this->assertEqualsWithDelta([1.0, 1.0, 1.0, 0.75], $scores, 1e-9);
     }
 
-    public function test_submit_crossword_partial_is_capped(): void {
-        $a = attempt::start($this->agon->id, $this->getDataGenerator()->create_user()->id);
-        // 2 of 5 letters correct → 0.4 × 0.5 = 0.2.
-        $score = attempt::submit_game($a, 'crossword', ['entries' => ['0-0' => 'T', '0-1' => 'O']])['score'];
-        $this->assertEqualsWithDelta(0.2, $score, 1e-9);
+    public function test_submit_crossword_partial_scores_per_word(): void {
+        // Custom (default) grading now gives partial credit per WHOLE word: (words right / total) × 0.5.
+        $course = $this->getDataGenerator()->create_course();
+        $crossword = json_encode(['words' => [
+            ['number' => 1, 'word' => 'CAT', 'direction' => 'across', 'row' => 0, 'col' => 0],
+            ['number' => 2, 'word' => 'DOG', 'direction' => 'across', 'row' => 1, 'col' => 0],
+        ]]);
+        $agon = $this->getDataGenerator()->create_module('agon',
+            ['course' => $course->id, 'contentcrossword' => $crossword]);
+
+        // CAT fully right, DOG has a wrong letter → 1 of 2 words = 0.5 fraction × 0.5 = 0.25.
+        $a = attempt::start($agon->id, $this->getDataGenerator()->create_user()->id);
+        $onlycat = ['0-0' => 'C', '0-1' => 'A', '0-2' => 'T', '1-0' => 'D', '1-1' => 'X', '1-2' => 'G'];
+        $this->assertEqualsWithDelta(0.25, attempt::submit_game($a, 'crossword', ['entries' => $onlycat])['score'], 1e-9);
+
+        // No word fully correct (both partial) → 0.0, even though 4 of 6 letters are right.
+        $b = attempt::start($agon->id, $this->getDataGenerator()->create_user()->id);
+        $noword = ['0-0' => 'C', '0-1' => 'A', '1-0' => 'D', '1-1' => 'O'];
+        $this->assertEqualsWithDelta(0.0, attempt::submit_game($b, 'crossword', ['entries' => $noword])['score'], 1e-9);
     }
 
     public function test_submit_crossword_regular_grading_scores_per_word(): void {
@@ -124,7 +138,7 @@ final class attempt_test extends \advanced_testcase {
             ['course' => $course->id, 'contentcrossword' => $crossword]);
         $a = attempt::start($agon->id, $this->getDataGenerator()->create_user()->id);
 
-        // CAT fully right, DOG has one wrong letter → 1 of 2 words = 0.5 (custom mode would cap ~0.42).
+        // CAT fully right, DOG has one wrong letter → 1 of 2 words = 0.5 (regular has no × 0.5 partial).
         $entries = ['0-0' => 'C', '0-1' => 'A', '0-2' => 'T', '1-0' => 'D', '1-1' => 'X', '1-2' => 'G'];
         $this->assertEqualsWithDelta(0.5, attempt::submit_game($a, 'crossword', ['entries' => $entries])['score'], 1e-9);
     }

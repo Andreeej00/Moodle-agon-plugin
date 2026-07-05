@@ -121,8 +121,9 @@ class attempt {
                     );
                 } else {
                     // Custom (default): a full solve claims a finish-rank place (1.0 / 0.75 / 0.5);
-                    // a partial scores per-letter fraction × 0.5, capped at 0.49.
-                    $fraction = scoring::crossword_correct_fraction($words, $entries);
+                    // a partial scores per-WORD fraction × 0.5, capped at 0.49 (a word counts only
+                    // when every one of its cells is right — the same per-word rule as regular grading).
+                    $fraction = scoring::crossword_correct_words_fraction($words, $entries);
                     $priorsolvers = $DB->count_records_select(
                         'agon_attempt',
                         'agonid = :agonid AND id <> :id AND scorecrossword >= :full',

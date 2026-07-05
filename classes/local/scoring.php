@@ -194,7 +194,7 @@ class scoring {
      * (1.0 / 0.75 / 0.5). A partial grid scores fraction × 0.5, capped at 0.49 so
      * it can never reach — let alone beat — a full solver's 0.5 floor.
      *
-     * @param float $fraction Fraction (0.0–1.0) of cells the student got right.
+     * @param float $fraction Fraction (0.0–1.0) of the grid correct — whole words in custom grading.
      * @param int $priorsolvers How many students fully solved this crossword before (0-based).
      * @return float
      */

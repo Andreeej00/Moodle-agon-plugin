@@ -147,7 +147,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                     var qsecs = questionSeconds();
                     startTimer(qsecs, $('timer-q'), function() { doSubmit('question'); });
                     announce('Question revealed. ' + qsecs + ' seconds on the clock.');
-                    focusFirst('.opt');
+                    // Don't auto-focus an option — focusing must not reveal one (see renderQuestion).
                 } else if (cur === 'coding') {
                     if ($('ready-code')) { $('ready-code').hidden = true; }
                     if ($('coding')) { $('coding').hidden = false; }
@@ -196,16 +196,30 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 return 'Next';
             };
             var updateCta = function(name) {
-                if (!$('cta')) { return; }
-                $('cta').textContent = ctaLabel(name);
+                var cta = $('cta'); if (!cta) { return; }
+                // The footer button is hidden on the results screen (the old "Finish" did nothing) and
+                // while a timed game's Start gate is up — that gate carries its own Start button, so the
+                // footer control only ever appears as the in-game submit/validation button.
+                var gateWaiting = (name === 'question' || name === 'coding') && !started[name];
+                cta.hidden = (name === 'results') || gateWaiting;
+                if (cta.hidden) { return; }
+                cta.textContent = ctaLabel(name);
                 // Coding: keep Submit locked until every sequence + line has been revealed,
                 // so an early click can't skip past unseen sequences.
                 var lockCoding = name === 'coding' && started[name] && !submitted[name] && !codingAllRevealed();
-                $('cta').disabled = lockCoding;
-                $('cta').classList.toggle('is-locked', lockCoding);
-                $('cta').title = lockCoding ? 'Reveal every sequence first — use the ▼ button' : '';
+                cta.disabled = lockCoding;
+                cta.classList.toggle('is-locked', lockCoding);
+                cta.title = lockCoding ? 'Reveal every sequence first — use the ▼ button' : '';
             };
 
+            // The correct-sequence review screen exists only to show the answer, so it is skipped
+            // entirely when Explain is off (rather than showing an empty screen).
+            var explainOn = function() { return $('explain-toggle') ? $('explain-toggle').checked : true; };
+            var advance = function() {
+                var next = Math.min(idx + 1, flow.length - 1);
+                if (flow[next] === 'review' && !explainOn()) { next = Math.min(next + 1, flow.length - 1); }
+                idx = next; show(flow[idx]);
+            };
             if ($('cta')) {
                 $('cta').addEventListener('click', function() {
                     userNavigated = true;
@@ -215,9 +229,15 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                         if (cur === 'coding' && !codingAllRevealed()) { announce('Reveal every sequence before submitting.'); return; }
                         doSubmit(cur); return;
                     }
-                    idx = Math.min(idx + 1, flow.length - 1); show(flow[idx]);
+                    advance();
                 });
             }
+            // Each timed game's Start gate has its own Start button, kept fully separate from the
+            // footer submit/validation button — this is the only control that starts the game.
+            [['start-q', 'question'], ['start-code', 'coding']].forEach(function(pair) {
+                var b = $(pair[0]);
+                if (b) { b.addEventListener('click', function() { userNavigated = true; startGame(pair[1]); }); }
+            });
 
             // ---------- hint (one per attempt, server-issued; effect depends on the game) ----------
             var updateHint = function(name) {
@@ -296,7 +316,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             // "Explain" toggle (on by default) shows/hides the why-explanations on the
             // question feedback + coding review.
             if ($('explain-toggle') && $('agon-app')) {
-                var applyExplain = function() { $('agon-app').classList.toggle('show-explain', $('explain-toggle').checked); };
+                var applyExplain = function() {
+                    $('agon-app').classList.toggle('show-explain', $('explain-toggle').checked);
+                    // Turning Explain off while on the correct-sequence screen skips straight past it.
+                    if (!$('explain-toggle').checked && flow[idx] === 'review') { advance(); }
+                };
                 $('explain-toggle').addEventListener('change', applyExplain);
                 applyExplain();
             }
@@ -423,7 +447,9 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 };
                 var li = function(ws) {
                     return ws.map(function(w) {
-                        return '<li><b>' + w.number + '.</b> ' + dirmark(w.direction) + ' ' + esc(w.clue) + '</li>';
+                        return '<li data-wk="' + w.number + '-' + w.direction + '">' +
+                            '<span class="clue-text"><b>' + w.number + '.</b> ' + dirmark(w.direction) + ' ' + esc(w.clue) + '</span>' +
+                            '<span class="clue-answer" aria-live="polite"></span></li>';
                     }).join('');
                 };
                 if ($('clues')) {
@@ -494,38 +520,41 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             };
             function feedbackCrossword(fbk, score) {
                 var solution = fbk.solution || {};
-                var grading = (D.crossword && D.crossword.grading) || 'custom';
-                var total = 0, correct = 0;
+                var words = (D.crossword && D.crossword.words) || [];
+                // Mark each filled cell right/wrong (per-cell visual cue on the grid).
                 Object.keys(cwMap).forEach(function(k) {
                     var m = cwMap[k]; if (!m.input) { return; }
-                    total++;
                     var val = (m.input.value || '').toUpperCase();
                     m.input.disabled = true;
                     if (val !== '') {
-                        if (val === (solution[k] || '').toUpperCase()) { m.cell.classList.add('is-correct'); correct++; } else { m.cell.classList.add('is-wrong'); }
+                        if (val === (solution[k] || '').toUpperCase()) { m.cell.classList.add('is-correct'); } else { m.cell.classList.add('is-wrong'); }
                     }
                 });
                 root.querySelectorAll('.cw__cell.is-word').forEach(function(el) { el.classList.remove('is-word'); });
-                if (grading === 'regular') {
-                    // Regular grading is per whole word: a word counts only if every one of its cells is right.
-                    var words = (D.crossword && D.crossword.words) || [], wc = 0;
-                    words.forEach(function(w) {
-                        var len = w.length || 0, ok = len > 0;
-                        for (var i = 0; i < len; i++) {
-                            var r = w.direction === 'across' ? w.row : w.row + i;
-                            var c = w.direction === 'across' ? w.col + i : w.col;
-                            var cellm = cwMap[r + '-' + c];
-                            var got = (cellm && cellm.input) ? (cellm.input.value || '').toUpperCase() : '';
-                            if (got === '' || got !== (solution[r + '-' + c] || '').toUpperCase()) { ok = false; break; }
-                        }
-                        if (ok) { wc++; }
-                    });
-                    fb('fb-cw', wc === words.length, (wc === words.length ? '✓ All words correct! ' : '') + wc + ' of ' +
-                        words.length + ' words correct — <b>' + Number(score).toFixed(2) + '</b> points.');
-                } else {
-                    fb('fb-cw', correct === total, (correct === total ? '✓ All correct! ' : '') + correct + ' of ' + total +
-                        ' letters correct — <b>' + Number(score).toFixed(2) + '</b> points.');
-                }
+                // Grade per WHOLE word (both modes): a word counts only if every one of its cells is
+                // right. For words the student did not fully get, reveal the correct answer beside its
+                // clue — CSS shows it only while the Explain toggle is on.
+                var correctwords = 0;
+                words.forEach(function(w) {
+                    var len = w.length || 0, ok = len > 0, answer = '';
+                    for (var i = 0; i < len; i++) {
+                        var r = w.direction === 'across' ? w.row : w.row + i;
+                        var c = w.direction === 'across' ? w.col + i : w.col;
+                        var want = (solution[r + '-' + c] || '').toUpperCase();
+                        answer += want;
+                        var cellm = cwMap[r + '-' + c];
+                        var got = (cellm && cellm.input) ? (cellm.input.value || '').toUpperCase() : '';
+                        if (got === '' || got !== want) { ok = false; }
+                    }
+                    if (ok) { correctwords++; }
+                    var slot = root.querySelector('.clues li[data-wk="' + w.number + '-' + w.direction + '"] .clue-answer');
+                    if (slot) {
+                        if (!ok && answer) { slot.textContent = answer; slot.classList.add('is-shown'); } else { slot.textContent = ''; slot.classList.remove('is-shown'); }
+                    }
+                });
+                var allgood = words.length > 0 && correctwords === words.length;
+                fb('fb-cw', allgood, (allgood ? '✓ All words correct! ' : '') + correctwords + ' of ' + words.length +
+                    ' word' + (words.length === 1 ? '' : 's') + ' correct — <b>' + Number(score).toFixed(2) + '</b> points.');
             }
 
             // ---------- QUESTION ----------
@@ -535,7 +564,7 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 if (!q) { host.innerHTML = '<p class="lead">No question configured.</p>'; return; }
                 if (host.dataset.done) { return; }
                 host.innerHTML = '<div class="q__text">' + esc(q.question) + '</div>' +
-                    '<p class="peek-hint" style="text-align:left;margin:2px 0 10px">&#128072; reveal an answer (hover, tap, or focus it)</p>' +
+                    '<p class="peek-hint" style="text-align:left;margin:2px 0 10px">&#128072; hover or tap an answer to reveal it</p>' +
                     q.options.map(function(o, i) {
                         return '<button class="opt peek" type="button" data-i="' + i + '" aria-pressed="false">' + esc(o) + '</button>';
                     }).join('');
@@ -543,9 +572,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 host.querySelectorAll('.opt').forEach(function(o) {
                     o.addEventListener('click', function() {
                         if (submitted.question) { return; }
-                        o.classList.add('is-revealed');
-                        host.querySelectorAll('.opt').forEach(function(x) { x.classList.remove('is-selected'); x.setAttribute('aria-pressed', 'false'); });
-                        o.classList.add('is-selected'); o.setAttribute('aria-pressed', 'true');
+                        // Only the chosen option is clear; picking another re-blurs the last one.
+                        host.querySelectorAll('.opt').forEach(function(x) {
+                            x.classList.remove('is-selected', 'is-revealed'); x.setAttribute('aria-pressed', 'false');
+                        });
+                        o.classList.add('is-selected', 'is-revealed'); o.setAttribute('aria-pressed', 'true');
                     });
                 });
             }

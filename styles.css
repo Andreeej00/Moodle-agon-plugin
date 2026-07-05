@@ -61,9 +61,11 @@
   background:linear-gradient(180deg,#2f8ce4,var(--accent) 60%,#1166bb);color:#fff;
   box-shadow:0 6px 16px rgba(21,116,207,.3), inset 0 1px 0 rgba(255,255,255,.25);
 }
-.agon .ag-btn--primary:hover{filter:brightness(1.06)}
-.agon .ag-btn--primary:active{transform:translateY(1px);box-shadow:0 3px 8px rgba(21,116,207,.3)}
-.agon .ag-btn--primary:disabled{filter:grayscale(.5) brightness(.92);cursor:wait}
+/* Only a genuinely usable button lifts on hover — a disabled/locked one must NOT,
+   or it looks the same as the active Start button. */
+.agon .ag-btn--primary:hover:not(:disabled):not(.is-locked){filter:brightness(1.06)}
+.agon .ag-btn--primary:active:not(:disabled):not(.is-locked){transform:translateY(1px);box-shadow:0 3px 8px rgba(21,116,207,.3)}
+.agon .ag-btn--primary:disabled{background:var(--line);color:var(--muted);box-shadow:none;filter:none;cursor:wait}
 .agon .timer{
   display:inline-flex;align-items:center;gap:6px;background:#fff1f3;color:var(--bad);
   border:1px solid #f6cdd5;font-weight:700;border-radius:999px;padding:6px 14px;
@@ -107,9 +109,15 @@
 .agon .cw__num{position:absolute;top:1px;left:3px;font-size:9px;color:var(--muted);font-weight:700;z-index:1}
 .agon .clues h4{margin:.6em 0 .3em;font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
 .agon .clues ol{margin:0;padding-left:4px;list-style:none} /* the JS numbers each clue itself */
-.agon .clues li{font-size:13.5px;color:var(--muted);margin:.35em 0;line-height:1.5}
+.agon .clues li{display:flex;gap:10px;align-items:baseline;font-size:13.5px;color:var(--muted);margin:.35em 0;line-height:1.5}
 .agon .clues li b{color:var(--ink)}
 .agon .cw-dir{display:inline-block;min-width:14px;text-align:center;color:var(--accent);font-weight:700}
+/* Left: the clue (wraps, never bleeds past its share). Right: a reserved column that,
+   after submit, shows the correct word for a wrongly/partly guessed clue — only when
+   Explain is on. Long answers wrap inside their own column instead of overflowing. */
+.agon .clue-text{flex:1 1 auto;min-width:0}
+.agon .clue-answer{display:none;flex:0 0 32%;max-width:32%;text-align:right;word-break:break-word;color:var(--good);font-weight:700;font-size:12.5px;text-transform:uppercase;letter-spacing:.02em}
+.agon .app.show-explain .clue-answer.is-shown{display:block}
 
 .agon .q__text{font-size:17px;font-weight:600;margin:.4em 0 1em}
 .agon .opt{
@@ -151,7 +159,7 @@
    more prominent than the footer Submit, which stays locked until all are revealed. */
 .agon .reveal-line{display:flex;width:100%;justify-content:center;align-items:center;gap:8px;margin:12px 0 2px;background:linear-gradient(180deg,#2f8ce4,var(--accent));color:#fff;border:0;border-radius:12px;padding:12px 16px;font-size:14.5px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(21,116,207,.28)}
 .agon .reveal-line:hover{filter:brightness(1.05)}
-.agon .ag-btn--primary.is-locked{cursor:not-allowed;filter:grayscale(.55) brightness(.96)}
+.agon .ag-btn--primary.is-locked{background:var(--line);color:var(--muted);box-shadow:none;filter:none;cursor:not-allowed}
 .agon .blank.is-locked{cursor:not-allowed;border-bottom-style:solid;opacity:.85}
 
 /* screen transitions + micro-interactions */
@@ -193,6 +201,10 @@
 .agon .ready{text-align:center;background:var(--card);border:1.5px dashed #c3d2e2;border-radius:var(--r);padding:30px 18px;margin-top:8px;box-shadow:var(--shadow-sm)}
 .agon .ready__big{font-size:32px;font-weight:800;color:var(--accent);margin-bottom:6px;font-variant-numeric:tabular-nums}
 .agon .ready p{color:var(--muted);font-size:14px;margin:0}
+.agon .ready__note{margin-top:12px !important;font-size:12.5px}
+/* The gate's own Start button — the initial "start this game" action, kept separate from
+   the footer button (which becomes the submit/validation control once the game is running). */
+.agon .ready__start{width:auto;min-width:170px;margin:18px auto 0;padding:13px 30px}
 .agon .timer.is-low{background:var(--bad);color:#fff}
 @media (prefers-reduced-motion: no-preference){ .agon .timer.is-low{animation:agontick 1s ease infinite} }
 @keyframes agontick{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
@@ -200,7 +212,8 @@
 /* accessibility */
 .agon .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .agon a:focus-visible,.agon button:focus-visible,.agon input:focus-visible,.agon [tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
-.agon .opt.peek:focus-visible{filter:none}
+/* Options reveal on hover or click only — never on keyboard/programmatic focus, so
+   tabbing (or the Start auto-focus) can't un-blur an answer. */
 .agon .stage__title:focus,.agon .stage__title:focus-visible{outline:none}
 
 .agon .score-big{font-size:52px;font-weight:800;text-align:center;color:var(--accent);line-height:1;margin-bottom:6px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}

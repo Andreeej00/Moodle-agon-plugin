@@ -49,6 +49,8 @@
         <div class="ready" id="ready-q">
           <div class="ready__big" aria-hidden="true">&#9201; 14s</div>
           <p>The question is hidden until you're ready. The clock starts when you press <b>Start</b>.</p>
+          <p class="ready__note">&#128433;&#65039; A mouse, trackpad or touchscreen is needed — answers reveal on hover or tap.</p>
+          <button class="ag-btn ag-btn--primary ready__start" id="start-q" type="button">Start</button>
         </div>
         <div class="ag-card" id="q-host" hidden></div>
         <div class="feedback" id="fb-q" role="status" aria-live="polite" hidden></div>
@@ -61,6 +63,7 @@
         <div class="ready" id="ready-code">
           <div class="ready__big" aria-hidden="true">&#9201; 14s</div>
           <p>The code is hidden until you're ready — one sequence at a time. The clock starts when you press <b>Start</b>.</p>
+          <button class="ag-btn ag-btn--primary ready__start" id="start-code" type="button">Start</button>
         </div>
         <p class="lead">Only one sequence shows at a time. Use &#9660; to reveal the next line, then the next sequence (earlier ones lock). Choose an option and a blank to place it (drag also works on a mouse); choose a filled blank to clear it. (Hint cues the next blank.)</p>
         <div id="coding" hidden></div>
