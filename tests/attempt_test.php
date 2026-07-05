@@ -243,19 +243,6 @@ final class attempt_test extends \advanced_testcase {
         $this->assertEqualsWithDelta([1.0, 1.0, 1.0, 1.0, 1.0], $scores, 1e-9);
     }
 
-    public function test_reset_deletes_the_attempt(): void {
-        global $DB;
-        $user = $this->getDataGenerator()->create_user();
-        $a = attempt::start($this->agon->id, $user->id);
-        attempt::submit_game($a, 'question', ['selected' => 1]);
-        attempt::reset($this->agon->id, $user->id);
-        $this->assertFalse($DB->record_exists('agon_attempt', ['id' => $a->id]));
-        // A fresh start gets a brand-new row with no submissions.
-        $fresh = attempt::start($this->agon->id, $user->id);
-        $this->assertNotEquals($a->id, $fresh->id);
-        $this->assertSame([], attempt::submitted_games($fresh));
-    }
-
     public function test_summary_is_webservice_shaped(): void {
         $user = $this->getDataGenerator()->create_user();
         $a = attempt::start($this->agon->id, $user->id);

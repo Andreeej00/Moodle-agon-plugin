@@ -50,12 +50,5 @@ if ($hassiteconfig) {
         $settings->add(new admin_setting_configtext('mod_agon/aimodel',
             new lang_string('aimodel', 'mod_agon'),
             new lang_string('aimodel_desc', 'mod_agon'), 'gemini-2.5-flash', PARAM_RAW_TRIMMED));
-
-        $settings->add(new admin_setting_heading('mod_agon/testhdr',
-            new lang_string('testsettings', 'mod_agon'), ''));
-
-        $settings->add(new admin_setting_configcheckbox('mod_agon/testmode',
-            new lang_string('testmode', 'mod_agon'),
-            new lang_string('testmode_desc', 'mod_agon'), 0));
     }
 }

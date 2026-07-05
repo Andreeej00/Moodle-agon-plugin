@@ -105,9 +105,7 @@ Moodle runs at **http://localhost:8000**.
 
 To see the **student** game, log in as `agonstu` (an incognito window is cleanest); as admin you get the **teacher monitor**. Avoid "Switch role to Student" — it leaves a hybrid edit state.
 
-### 🧪 Testing mode (replay without rebuilding)
-
-One attempt per student is enforced. For testing, turn on **Site administration → Plugins → Activity modules → Agon → Testing mode**: a **Play again** button then appears on the results screen and resets your attempt. (Leave it **off** in a real course.)
+One attempt per student is enforced. To replay while testing, clear the row: `DELETE FROM mdl_agon_attempt WHERE userid = <id>;` (or via `php admin/cli/...`).
 
 ### 🤖 Enabling AI generation
 
@@ -136,8 +134,8 @@ Teachers can always use **Copy prompt** with no key.
 | `db/access.php`, `db/services.php` | capabilities; web-service definitions |
 | `mod_form.php` | settings form — just the three game toggles |
 | `bank.php`, `templates/bank.mustache`, `amd/src/bank.js` | the **Question bank** authoring screen (manual/JSON, crossword builder, AI generation) |
-| `settings.php` | admin settings — AI provider/key/model + **Testing mode** |
-| `view.php` | branches student play / teacher monitor; builds answer-free `window.AGON`; handles `?playagain=1` (test mode) |
+| `settings.php` | admin settings — AI provider/key/model |
+| `view.php` | branches student play / teacher monitor; builds answer-free `window.AGON` |
 | `classes/local/` | engine: `content` (answer-split + feedback/hint + lazy sequence), `scoring`, `attempt`, `leaderboard`, `ai` |
 | `classes/external/` | web services: `start_attempt`, `submit_game`, `finish_attempt`, `get_hint`, **`get_sequence`**, `get_leaderboard`, `save_content`, `ai_prompt`, `ai_generate`, `fetch_source`, `extract_file` |
 | `classes/privacy/provider.php` | privacy provider (attempts: export + delete) |

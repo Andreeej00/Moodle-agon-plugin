@@ -269,21 +269,6 @@ class attempt {
     }
 
     /**
-     * Delete this student's attempt so they can play the activity again.
-     *
-     * Testing aid only — gated by the site 'testmode' setting at the call site
-     * (view.php). Wipes the attempt row (and thus its leaderboard entry); the
-     * gradebook grade is recomputed on the next finish.
-     *
-     * @param int $agonid
-     * @param int $userid
-     */
-    public static function reset(int $agonid, int $userid): void {
-        global $DB;
-        $DB->delete_records('agon_attempt', ['agonid' => $agonid, 'userid' => $userid]);
-    }
-
-    /**
      * A web-service-friendly summary of an attempt (no answers).
      *
      * @param stdClass $attempt

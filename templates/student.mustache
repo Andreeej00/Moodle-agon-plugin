@@ -22,14 +22,8 @@
         <div class="ag-card">
           <div class="kicker">Today's challenge</div>
           <h2 class="stage__title" id="t-start" tabindex="-1">{{subject}}</h2>
-          <p class="lead">Three mini-games: crossword, weekly question, and coding. Earn points for the course leaderboard.</p>
-          <div class="scorebox">
-            <b>Scoring</b><br>
-            {{#cwregular}}Crossword: full solve = <b>1.0</b> &middot; partial = fraction of words correct (e.g. 4 of 10 = <b>0.40</b>){{/cwregular}}
-            {{^cwregular}}Crossword: full solve, 1st&ndash;3rd = <b>1.0</b>, 4th&ndash;10th = <b>0.75</b>, later = <b>0.5</b> &middot; partial up to <b>0.49</b>{{/cwregular}}<br>
-            Question: correct = <b>1.0</b> &middot; Coding: partial credit per blank<br>
-            1 hint &middot; 1 attempt
-          </div>
+          <p class="lead" id="start-lead">Earn points for the course leaderboard.</p>
+          <div class="scorebox" id="scorebox"><b>Scoring</b></div>
         </div>
       </section>
 
@@ -84,10 +78,6 @@
         <div class="ag-card">
           <div class="kicker">Course leaderboard</div>
           <ol class="lb" id="lb"></ol>
-        </div>
-        <div class="ag-card" id="testbar" hidden>
-          <div class="kicker">Testing</div>
-          <button class="ag-btn ag-btn--primary" id="play-again" type="button">&#8635; Play again</button>
         </div>
       </section>
     </main>

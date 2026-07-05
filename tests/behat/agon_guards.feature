@@ -33,3 +33,8 @@ Feature: Agon guard rails
     And I should see "Question" in the "#stepper" "css_element"
     And I should not see "Crossword" in the "#stepper" "css_element"
     And I should not see "Code" in the "#stepper" "css_element"
+    # The start screen names only the enabled game, and the scoring key lists it alone.
+    And I should see "One mini-game: weekly question" in the "#start-lead" "css_element"
+    And I should see "Question: correct" in the "#scorebox" "css_element"
+    And I should not see "Crossword:" in the "#scorebox" "css_element"
+    And I should not see "Coding:" in the "#scorebox" "css_element"

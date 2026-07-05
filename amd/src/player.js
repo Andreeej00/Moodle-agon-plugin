@@ -329,14 +329,33 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 $('explain-toggle').addEventListener('change', applyExplain);
                 applyExplain();
             }
-            // Testing mode: the results screen offers a "Play again" (reset attempt) button.
-            if (D.testmode && $('testbar') && $('play-again')) {
-                $('testbar').hidden = false;
-                $('play-again').addEventListener('click', function() {
-                    var sk = (window.M && window.M.cfg && window.M.cfg.sesskey) ? window.M.cfg.sesskey : '';
-                    window.location.href = window.location.pathname + '?id=' + CMID + '&playagain=1&sesskey=' + encodeURIComponent(sk);
-                });
-            }
+            // Start screen: the intro line + the scoring key are built from the games the
+            // professor actually enabled — a game that is off is left out of both, and the
+            // crossword line follows its chosen grading mode.
+            (function renderStart() {
+                var labels = {crossword: 'crossword', question: 'weekly question', coding: 'coding'};
+                var chosen = ['crossword', 'question', 'coding'].filter(function(g) { return games[g]; });
+                var names = chosen.map(function(g) { return labels[g]; });
+                var countword = ['no', 'One', 'Two', 'Three'][names.length] || String(names.length);
+                var joined = names.length <= 1 ? (names[0] || '')
+                    : names.slice(0, -1).join(', ') + (names.length > 2 ? ',' : '') + ' and ' + names[names.length - 1];
+                if ($('start-lead')) {
+                    $('start-lead').textContent = names.length
+                        ? (countword + ' mini-game' + (names.length === 1 ? '' : 's') + ': ' + joined +
+                            '. Earn points for the course leaderboard.')
+                        : 'Earn points for the course leaderboard.';
+                }
+                var lines = [];
+                if (games.crossword) {
+                    lines.push((D.crossword && D.crossword.grading) === 'regular'
+                        ? 'Crossword: full solve = <b>1.0</b> &middot; partial = fraction of words correct (e.g. 4 of 10 = <b>0.40</b>)'
+                        : 'Crossword: full solve, 1st&ndash;3rd = <b>1.0</b>, 4th&ndash;10th = <b>0.75</b>, later = <b>0.5</b> &middot; partial up to <b>0.49</b>');
+                }
+                if (games.question) { lines.push('Question: correct = <b>1.0</b>, wrong = <b>0</b>'); }
+                if (games.coding) { lines.push('Coding: partial credit per blank'); }
+                lines.push('1 hint &middot; 1 attempt');
+                if ($('scorebox')) { $('scorebox').innerHTML = '<b>Scoring</b><br>' + lines.join('<br>'); }
+            })();
             // Timers depend on content (question options / coding lines) — fill the gates + pills.
             if (games.question) {
                 var qsecs0 = questionSeconds();
@@ -790,8 +809,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                         if ((mine[b] || '') === want) { correct++; }
                     });
                 });
+                // The "see the correct code next" nudge only applies when Explain is on —
+                // with it off, the review screen is skipped, so promising it would mislead.
                 fb('fb-code', correct === total, correct + ' of ' + total + ' blanks correct' +
-                    (correct === total ? ' — perfect!' : '') + ' — <b>' + Number(score).toFixed(2) + '</b> points. See the correct code next.');
+                    (correct === total ? ' — perfect!' : '') + ' — <b>' + Number(score).toFixed(2) + '</b> points.' +
+                    (explainOn() ? ' See the correct code next.' : ''));
             }
             function renderReview() {
                 var fbseqs = (feedback.coding && feedback.coding.sequences) || [];

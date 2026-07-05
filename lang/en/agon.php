@@ -72,6 +72,3 @@ $string['aibadjson'] = 'The AI did not return valid game JSON. Try again or edit
 $string['aifileunsupported'] = 'Only PDF and PPTX files can be uploaded.';
 $string['aiextractfailed'] = 'Could not read text from that file. For scanned PDFs, upload a PPTX or paste the text instead.';
 $string['invalidsequence'] = 'That coding sequence does not exist.';
-$string['testsettings'] = 'Testing';
-$string['testmode'] = 'Testing mode (allow replays)';
-$string['testmode_desc'] = 'When on, a "Play again" button appears on the results screen and lets any user reset their attempt and replay. For a test site only — leave off in a real course.';

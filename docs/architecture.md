@@ -20,7 +20,7 @@ Technical companion to [plan.md](../plan.md). This describes *how* `mod_agon` is
 
 ## How it renders in Moodle
 
-- **`view.php`** loads the instance, branches on **`mod/agon:manage`** (monitor for teachers, play for students), and builds `window.AGON` from `content::public_for_render()` — clues, options and *coding metadata* only; never a `correct` index, crossword letters or coding `blanks`/code. If nothing is playable (toggle off, or empty/invalid JSON) the student gets a "not configured" notice instead of banking a zero-score run. In site **Testing mode** it also honours `?playagain=1` (attempt reset).
+- **`view.php`** loads the instance, branches on **`mod/agon:manage`** (monitor for teachers, play for students), and builds `window.AGON` from `content::public_for_render()` — clues, options and *coding metadata* only; never a `correct` index, crossword letters or coding `blanks`/code. If nothing is playable (toggle off, or empty/invalid JSON) the student gets a "not configured" notice instead of banking a zero-score run.
 - **Student play** is the AMD module `mod_agon/player` (`amd/src/player.js`), booted with `js_call_amd(..., [cmid])`. It drives everything through the web services and renders verdicts only from the server's reveal-on-submit feedback. No grunt in the dev container, so `amd/build/*.min.js` are hand-mirrored copies.
 - **Teacher monitor** is plain `js/professor.js` over the real attempt data in `window.AGON` (name search + state filter + course leaderboard).
 - **Question bank** (`bank.php` + `templates/bank.mustache` + `amd/src/bank.js`) is a secondary-navigation tab added in `agon_extend_settings_navigation` for `mod/agon:manage` holders. Manual ⇄ JSON editors per game, the crossword **builder** (`amd/src/crossword.js`, a pure deterministic layout engine shared with the preview), per-game Save through `mod_agon_save_content`, and the shared **Generate with AI** panel.
@@ -86,7 +86,6 @@ AJAX external functions (shared traits: `uses_agon_context` for cm/capability re
 ## Admin settings (`settings.php`)
 
 - **AI:** `aienable` (off by default), `aiprovider` (google/anthropic/openai), `aiapikey` (or `$CFG->forced_plugin_settings['mod_agon']['aiapikey']` in config.php), `aimodel` (default `gemini-2.5-flash`).
-- **Testing mode:** `testmode` — surfaces the results-screen "Play again" reset for test sites.
 
 ## Moodle APIs
 
