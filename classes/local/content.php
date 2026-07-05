@@ -226,9 +226,12 @@ class content {
                     return 'words';
                 }
                 foreach ($words as $w) {
+                    // Row/col must be non-negative ints: the player draws the grid from
+                    // (0,0), so a negative coordinate would silently break rendering.
                     if (!is_array($w) || (string)($w['word'] ?? '') === ''
                             || !in_array($w['direction'] ?? '', ['across', 'down'], true)
-                            || !isset($w['row']) || !isset($w['col'])) {
+                            || !isset($w['row']) || !isset($w['col'])
+                            || (int)$w['row'] < 0 || (int)$w['col'] < 0) {
                         return 'words';
                     }
                 }
@@ -244,6 +247,11 @@ class content {
                             || !is_array($options) || count($options) < 2 || !isset($q['correct'])) {
                         return 'questions';
                     }
+                    // 'correct' must index an existing option, or the question is unanswerable.
+                    $correct = (int)$q['correct'];
+                    if ($correct < 0 || $correct >= count(array_values($options))) {
+                        return 'questions';
+                    }
                 }
                 return null;
             case 'coding':
@@ -255,6 +263,18 @@ class content {
                     if (!is_array($s) || (string)($s['code'] ?? '') === ''
                             || !is_array($s['blanks'] ?? null) || !is_array($s['options'] ?? null)) {
                         return 'sequences';
+                    }
+                    // Every ____ needs exactly one answer, and every answer must be offered
+                    // as an option — otherwise a blank can never be filled correctly.
+                    $blanks = array_values($s['blanks']);
+                    if (substr_count((string)$s['code'], '____') !== count($blanks) || count($blanks) < 1) {
+                        return 'sequences';
+                    }
+                    $options = array_map('strval', array_values($s['options']));
+                    foreach ($blanks as $b) {
+                        if (!in_array((string)$b, $options, true)) {
+                            return 'sequences';
+                        }
                     }
                 }
                 return null;

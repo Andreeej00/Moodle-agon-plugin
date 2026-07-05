@@ -2,7 +2,7 @@
 
 > **`mod_agon`** · A Moodle activity that turns a week's course topic into a short, competitive run of mini-games — so students prep for quizzes by *playing*.
 
-> **Status:** playable end-to-end on **Moodle 4.5 LTS**. Scoring, attempts, hints and the cumulative course leaderboard are **server-authoritative**; a teacher **Question bank** authors content by hand, as JSON, or with **AI generation**; cheating is resisted with **server-side lazy-loading**, tight timers, and progressive reveal. Release **0.3.0**.
+> **Status:** playable end-to-end on **Moodle 4.5 LTS**. Scoring, attempts, hints and the cumulative course leaderboard are **server-authoritative**; a teacher **Question bank** authors content by hand, as JSON, or with **AI generation**; cheating is resisted with **server-side lazy-loading**, tight timers, and progressive reveal. Tested: **PHPUnit (103 tests, ~95% line coverage of the engine + services) + Behat flows + Node builder tests**. Release **0.3.1**.
 
 ## 📸 Screens
 
@@ -10,13 +10,15 @@
 | --- | --- | --- |
 | ![Opening](docs/img/opening.png) | ![Crossword](docs/img/crossword.png) | ![Weekly question](docs/img/weekly_question.png) |
 
-| Coding | Completion | Teacher config |
+| Coding | Completion | Question bank (teacher) |
 | --- | --- | --- |
-| ![Coding](docs/img/coding.png) | ![Completion](docs/img/completion.png) | ![Teacher config](docs/img/config.png) |
+| ![Coding](docs/img/coding.png) | ![Completion](docs/img/completion.png) | ![Question bank](docs/img/bank.png) |
+
+More states in [docs/img/](docs/img/): the start gates + timers (`question_timer`, `coding_timer`), reveal-on-submit feedback (`crossword_check`, `question_reveal`, `coding_check`), the coding reveal/lock mechanic (`coding_reveal`), and the slimmed activity settings (`config`).
 
 ## ✨ What is Agon?
 
-Agon (Greek for *contest*) is a generic, reusable Moodle activity module. A teacher drops it into any course, authors a week's content, and students get a fun, competitive way to revise — with one **course-wide leaderboard** and **extra grade points** for top performers. Designed to work for **any subject**.
+Agon (Greek for *contest*) is a generic, reusable Moodle activity module. A teacher drops it into any course, authors a week's content, and students get a fun, competitive way to revise — with one **course-wide leaderboard**; top performers earn **extra grade points** (awarded by the professor off the leaderboard — automatic gradebook export is a planned step). Designed to work for **any subject**.
 
 ## 🪜 The learning ladder
 
@@ -69,7 +71,17 @@ Real grade points are on the line, so the goal is **honest play faster than chea
 
 **One engine + pluggable games** — a shared server-side core (`classes/local/`: `content`, `scoring`, `attempt`, `leaderboard`, `ai`) with each game as a swappable "renderer." The student play is an **AMD module** (`mod_agon/player`) that drives the run through web services (`classes/external/`); the teacher monitor is plain JS. Rendered via Mustache templates, styled by a scoped `styles.css`.
 
-→ Fuller design notes live in **[plan.md](plan.md)** and **[docs/architecture.md](docs/architecture.md)** (these may lag the code).
+→ Fuller design notes live in **[plan.md](plan.md)** and **[docs/architecture.md](docs/architecture.md)**.
+
+## 🧪 Tests
+
+| Suite | What it covers | Run (from the Moodle root / container) |
+| --- | --- | --- |
+| **PHPUnit** — `tests/` | the engine (`scoring`, `content`, `attempt`, `leaderboard`, `ai` with mocked HTTP), all 11 web services, `lib.php` callbacks, events, the generator and the privacy provider — **103 tests, ~95% line / 81% method coverage** of `classes/` + `lib.php` (whitelist in `tests/coverage.php`) | `vendor/bin/phpunit --testsuite mod_agon_testsuite` — coverage: `php admin/tool/phpunit/cli/util.php --buildcomponentconfigs`, then `php -d pcov.enabled=1 -d pcov.directory=$(pwd)/mod/agon vendor/bin/phpunit -c mod/agon/phpunit.xml --coverage-text` |
+| **Behat** — `tests/behat/` | the real flows in a browser: the full student run (crossword typing → timed question → lazy-loaded coding → review → results + leaderboard), mid-run resume, the teacher monitor + Question bank tab + bank save, and the guard rails (not-configured notice, disabled games) | `php admin/tool/behat/cli/init.php`, then `vendor/bin/behat --config <behatroot>/behatrun/behat/behat.yml --tags=@mod_agon` |
+| **Node** — `tests/js/` | the pure crossword **builder engine** (validation, placement legality, determinism, numbering, grid consistency) | `node mod/agon/tests/js/crossword_test.js` |
+
+In moodle-docker, prefix the PHP commands with `bin/moodle-docker-compose exec webserver` (or `docker exec moodle-docker-webserver-1`). Remember the bind-mount gotcha below when tests read stale files.
 
 ## 🚀 Run it locally (moodle-docker)
 
@@ -135,7 +147,8 @@ Teachers can always use **Copy prompt** with no key.
 | `js/professor.js` | teacher monitor table (search + state filter) |
 | `styles.css` | scoped under `.agon` |
 | `pix/monologo.svg` | branded AGON puzzle-cube activity icon |
-| `lib.php` | Moodle callbacks (`agon_add_instance`, gradebook hooks, nav, …) |
+| `lib.php` | Moodle callbacks: instance add/update/delete, `agon_supports`, branded icon, the Question-bank nav tab |
+| `tests/` | PHPUnit (+ `coverage.php` whitelist), `tests/behat/` features, `tests/js/` Node builder tests |
 | `prototype/` | standalone HTML/CSS/JS design mock (not shipped) |
 
 ## 📦 Install on another Moodle

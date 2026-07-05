@@ -170,5 +170,89 @@ final class content_test extends \advanced_testcase {
         $this->assertNull(content::validate_game('coding',
             ['sequences' => [['code' => 'a = ____', 'blanks' => ['x'], 'options' => ['x', 'y']]]]));
         $this->assertSame('sequences', content::validate_game('coding', ['sequences' => [['code' => '']]]));
+        // Not-decoded / unknown-game payloads name what is missing.
+        $this->assertSame('contentquestion', content::validate_game('question', 'not an array'));
+        $this->assertSame('poetry', content::validate_game('poetry', ['anything' => true]));
+    }
+
+    public function test_validate_game_rejects_an_unanswerable_question(): void {
+        // 'correct' must point at an existing option, or no student can ever score.
+        $this->assertSame('questions', content::validate_game('question',
+            ['questions' => [['question' => 'Q', 'options' => ['a', 'b'], 'correct' => 5]]]));
+        $this->assertSame('questions', content::validate_game('question',
+            ['questions' => [['question' => 'Q', 'options' => ['a', 'b'], 'correct' => -1]]]));
+    }
+
+    public function test_validate_game_coding_blanks_must_match_the_code(): void {
+        // Two ____ but only one answer: the second blank could never be graded.
+        $this->assertSame('sequences', content::validate_game('coding',
+            ['sequences' => [['code' => 'a = ____; b = ____', 'blanks' => ['x'], 'options' => ['x']]]]));
+        // Answer not offered as an option: the blank could never be filled correctly.
+        $this->assertSame('sequences', content::validate_game('coding',
+            ['sequences' => [['code' => 'a = ____', 'blanks' => ['x'], 'options' => ['y', 'z']]]]));
+        // No ____ at all: nothing to play.
+        $this->assertSame('sequences', content::validate_game('coding',
+            ['sequences' => [['code' => 'a = 1', 'blanks' => [], 'options' => ['x']]]]));
+        // Numeric blank vs string option still matches (values compare as strings).
+        $this->assertNull(content::validate_game('coding',
+            ['sequences' => [['code' => 'n = ____', 'blanks' => [0], 'options' => ['0', '1']]]]));
+    }
+
+    public function test_validate_game_crossword_rejects_negative_coordinates(): void {
+        // The player draws from (0,0); a negative coordinate would break the grid.
+        $this->assertSame('words', content::validate_game('crossword',
+            ['words' => [['word' => 'CAT', 'direction' => 'down', 'row' => -1, 'col' => 0]]]));
+    }
+
+    public function test_meta_returns_subject_and_week(): void {
+        global $DB;
+        $DB->set_field('agon', 'contentcrossword', json_encode([
+            'subject' => 'NLP', 'week' => 4, 'topic' => 'Tokenization', 'words' => [
+                ['number' => 1, 'word' => 'TOKEN', 'clue' => 'A unit', 'direction' => 'across', 'row' => 0, 'col' => 0],
+            ]]), ['id' => $this->agon->id]);
+        $meta = content::meta($this->agon->id);
+        $this->assertSame('NLP', $meta['subject']);
+        $this->assertEquals(4, $meta['week']);
+        $this->assertSame('Tokenization', $meta['topic']);
+    }
+
+    public function test_raw_tolerates_invalid_stored_json(): void {
+        global $DB;
+        $DB->set_field('agon', 'contentcrossword', '{broken', ['id' => $this->agon->id]);
+        $DB->set_field('agon', 'contentquestion', '', ['id' => $this->agon->id]);
+        $raw = content::raw($this->agon->id);
+        $this->assertSame([], $raw['crossword']['words']);
+        $this->assertSame([], $raw['questions']);
+        $this->assertSame('custom', $raw['crossword']['grading']);
+    }
+
+    public function test_public_for_render_counts_nonempty_code_lines(): void {
+        global $DB;
+        // Three real lines with a stray blank line — the metadata reports 3 (and
+        // at least 1 even for pathological content), for the timer budget.
+        $DB->set_field('agon', 'contentcoding', json_encode(['sequences' => [
+            ['title' => 'S', 'code' => "a = ____\n\nb = ____\nc = ____", 'blanks' => ['x', 'y', 'z'], 'options' => ['x', 'y', 'z']],
+            ['title' => 'T', 'code' => ' ', 'blanks' => ['q'], 'options' => ['q']],
+        ]]), ['id' => $this->agon->id]);
+        $seqs = content::public_for_render($this->agon->id)['coding']['sequences'];
+        $this->assertSame(3, $seqs[0]['lines']);
+        $this->assertSame(1, $seqs[1]['lines']);
+    }
+
+    public function test_hint_coding_out_of_range_sequence_falls_back_to_first(): void {
+        $hint = content::hint($this->agon->id, 'coding', ['seq' => 99]);
+        $this->assertSame(0, $hint['seq']);
+        $this->assertSame(['x'], $hint['corrects']);
+    }
+
+    public function test_unknown_game_shapes_are_empty(): void {
+        $this->assertSame([], content::feedback($this->agon->id, 'poetry'));
+        $this->assertSame([], content::hint($this->agon->id, 'poetry'));
+        $this->assertNull(content::coding_sequence_public($this->agon->id, -1));
+    }
+
+    public function test_save_game_unknown_game_is_a_coding_error(): void {
+        $this->expectException(\coding_exception::class);
+        content::save_game($this->agon->id, 'poetry', '{}');
     }
 }

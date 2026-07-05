@@ -29,9 +29,12 @@
 define(['mod_agon/crossword', 'core/ajax', 'core/notification'], function(CW, Ajax, Notification) {
 
     var uid = 0;
+    // Quotes must be escaped too: esc() output lands in value="..." attributes —
+    // a clue or option containing " would truncate the input field.
     var esc = function(s) {
         return String(s === null || s === undefined ? '' : s)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     };
     var elFrom = function(html) {
         var t = document.createElement('template');
@@ -344,7 +347,7 @@ define(['mod_agon/crossword', 'core/ajax', 'core/notification'], function(CW, Aj
 
                 var updateStatus = function() {
                     var n = authoring().words.filter(function(w) { return (w.word || '').trim(); }).length;
-                    p.status.textContent = n ? (n + ' words') : 'empty';
+                    p.status.textContent = n ? (n + (n === 1 ? ' word' : ' words')) : 'empty';
                     p.status.classList.toggle('is-empty', !n);
                 };
                 var sv = saveRow('crossword', function(st) {

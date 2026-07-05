@@ -277,7 +277,6 @@
 .agon .bank-btn:hover{background:var(--sel)}
 .agon .bank-btn--primary{background:var(--accent);color:#fff}
 .agon .bank-btn--primary:hover{background:var(--sel);color:var(--accent);filter:none}
-.agon .bank-btn--ghost{border-color:var(--line);color:var(--muted)}
 .agon .bank-btn:disabled{opacity:.5;cursor:not-allowed}
 .agon .bank-btn--sm{padding:5px 10px;font-size:12.5px}
 .agon .bank-save-row{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}

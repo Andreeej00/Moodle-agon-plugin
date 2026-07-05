@@ -228,4 +228,78 @@ final class attempt_test extends \advanced_testcase {
         $this->expectException(\moodle_exception::class);
         attempt::use_hint($a, 'crossword', ['filled' => ['0-0']]);
     }
+
+    public function test_regular_grading_ignores_finish_rank(): void {
+        global $DB;
+        // Under regular grading a full solve is 1.0 no matter how many solved first.
+        $DB->set_field('agon', 'contentcrossword', json_encode(['grading' => 'regular', 'words' => [
+            ['number' => 1, 'word' => 'TOKEN', 'direction' => 'across', 'row' => 0, 'col' => 0],
+        ]]), ['id' => $this->agon->id]);
+        $scores = [];
+        for ($i = 0; $i < 5; $i++) {
+            $a = attempt::start($this->agon->id, $this->getDataGenerator()->create_user()->id);
+            $scores[] = attempt::submit_game($a, 'crossword', ['entries' => $this->full_crossword()])['score'];
+        }
+        $this->assertEqualsWithDelta([1.0, 1.0, 1.0, 1.0, 1.0], $scores, 1e-9);
+    }
+
+    public function test_reset_deletes_the_attempt(): void {
+        global $DB;
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        attempt::submit_game($a, 'question', ['selected' => 1]);
+        attempt::reset($this->agon->id, $user->id);
+        $this->assertFalse($DB->record_exists('agon_attempt', ['id' => $a->id]));
+        // A fresh start gets a brand-new row with no submissions.
+        $fresh = attempt::start($this->agon->id, $user->id);
+        $this->assertNotEquals($a->id, $fresh->id);
+        $this->assertSame([], attempt::submitted_games($fresh));
+    }
+
+    public function test_summary_is_webservice_shaped(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        attempt::submit_game($a, 'question', ['selected' => 1]);
+        $s = attempt::summary(attempt::get($a->id));
+        $this->assertSame((int)$a->id, $s['attemptid']);
+        $this->assertSame(attempt::STATE_INPROGRESS, $s['state']);
+        $this->assertEqualsWithDelta(1.0, $s['scorequestion'], 1e-9);
+        $this->assertEqualsWithDelta(1.0, $s['score'], 1e-9);
+        $this->assertSame(['question'], $s['submittedgames']);
+        $this->assertSame([], $s['hintsused']);
+        $this->assertIsInt($s['timestart']);
+        $this->assertSame(0, $s['timefinish']);
+    }
+
+    public function test_finish_is_idempotent(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        attempt::submit_game($a, 'crossword', ['entries' => $this->full_crossword()]);
+        attempt::submit_game($a, 'question', ['selected' => 1]);
+        attempt::submit_game($a, 'coding', ['answers' => [['x'], ['z']]]);
+        $first = attempt::finish($a);
+        $second = attempt::finish($a);
+        $this->assertSame(attempt::STATE_FINISHED, $second->state);
+        $this->assertEquals($first->timefinish, $second->timefinish);
+    }
+
+    public function test_unknown_game_is_a_coding_error(): void {
+        $user = $this->getDataGenerator()->create_user();
+        $a = attempt::start($this->agon->id, $user->id);
+        try {
+            attempt::submit_game($a, 'poetry', []);
+            $this->fail('Expected coding_exception');
+        } catch (\coding_exception $e) {
+            $this->assertStringContainsString('poetry', $e->getMessage());
+        }
+        $this->expectException(\coding_exception::class);
+        attempt::use_hint($a, 'poetry');
+    }
+
+    public function test_progress_lists_tolerate_garbage_json(): void {
+        // A corrupted column must read as "nothing yet", never fatal.
+        $broken = (object)['submittedgames' => '{oops', 'hintsused' => null];
+        $this->assertSame([], attempt::submitted_games($broken));
+        $this->assertSame([], attempt::hints_used($broken));
+    }
 }

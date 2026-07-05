@@ -108,4 +108,45 @@ final class leaderboard_test extends \advanced_testcase {
         $this->assertEqualsWithDelta(0.5, $rows[0]['coding'], 1e-9);
         $this->assertTrue($rows[0]['done']);
     }
+
+    public function test_attempts_ordered_by_total_and_empty_when_none(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $agon = $this->getDataGenerator()->create_module('agon', ['course' => $course->id]);
+        $this->assertSame([], leaderboard::attempts($agon->id));
+
+        $low = $this->getDataGenerator()->create_user(['firstname' => 'Low', 'lastname' => 'L']);
+        $high = $this->getDataGenerator()->create_user(['firstname' => 'High', 'lastname' => 'H']);
+        $this->record($agon->id, $low->id, 0.5);
+        $this->record($agon->id, $high->id, 2.5);
+
+        $rows = leaderboard::attempts($agon->id);
+        $this->assertSame(['High H', 'Low L'], array_column($rows, 'name'));
+        // An unfinished attempt reports done = false.
+        $this->assertTrue($rows[0]['done']);
+    }
+
+    public function test_course_totals_respects_the_limit(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $agon = $this->getDataGenerator()->create_module('agon', ['course' => $course->id]);
+        for ($i = 1; $i <= 3; $i++) {
+            $u = $this->getDataGenerator()->create_user(['firstname' => 'U' . $i, 'lastname' => 'X']);
+            $this->record($agon->id, $u->id, (float)$i);
+        }
+        $board = leaderboard::course_totals($course->id, 0, 2);
+        $this->assertCount(2, $board);
+        // Highest first; the third (lowest) row falls off the limit.
+        $this->assertSame(['U3 X', 'U2 X'], array_column($board, 'name'));
+    }
+
+    public function test_course_totals_rounds_to_two_decimals(): void {
+        $this->resetAfterTest();
+        $course = $this->getDataGenerator()->create_course();
+        $agon = $this->getDataGenerator()->create_module('agon', ['course' => $course->id]);
+        $u = $this->getDataGenerator()->create_user();
+        $this->record($agon->id, $u->id, 1.0 / 3.0);
+        $board = leaderboard::course_totals($course->id);
+        $this->assertSame(0.33, $board[0]['pts']);
+    }
 }

@@ -68,7 +68,17 @@ class attempt {
             'submittedgames' => '[]',
             'hintsused' => '[]',
         ];
-        $record->id = $DB->insert_record('agon_attempt', $record);
+        try {
+            $record->id = $DB->insert_record('agon_attempt', $record);
+        } catch (\dml_exception $e) {
+            // Two requests raced past the get above (e.g. two tabs booting at once):
+            // the unique (agonid, userid) key stopped the duplicate — use the winner.
+            $existing = $DB->get_record('agon_attempt', ['agonid' => $agonid, 'userid' => $userid]);
+            if (!$existing) {
+                throw $e;
+            }
+            return $existing;
+        }
         return $record;
     }
 

@@ -25,8 +25,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once(__DIR__ . '/upgradelib.php');
-
 /**
  * Execute mod_agon upgrade from the given old version.
  *

@@ -26,6 +26,9 @@ use core_external\external_api;
  * @covers      \mod_agon\external\start_attempt
  * @covers      \mod_agon\external\submit_game
  * @covers      \mod_agon\external\finish_attempt
+ * @covers      \mod_agon\external\get_hint
+ * @covers      \mod_agon\external\get_sequence
+ * @covers      \mod_agon\external\get_leaderboard
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -109,6 +112,52 @@ final class services_test extends \advanced_testcase {
         $this->setUser($teacher);
         $this->expectException(\required_capability_exception::class);
         start_attempt::execute($this->agon->cmid);
+    }
+
+    public function test_submit_twice_is_refused(): void {
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+        submit_game::execute($this->agon->cmid, 'question', json_encode(['selected' => 1]));
+        try {
+            submit_game::execute($this->agon->cmid, 'question', json_encode(['selected' => 0]));
+            $this->fail('Expected gamealreadysubmitted');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('gamealreadysubmitted', $e->errorcode);
+        }
+    }
+
+    public function test_hint_twice_is_refused(): void {
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+        get_hint::execute($this->agon->cmid, 'question', '{}');
+        try {
+            get_hint::execute($this->agon->cmid, 'question', '{}');
+            $this->fail('Expected hintalreadyused');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('hintalreadyused', $e->errorcode);
+        }
+    }
+
+    public function test_finish_requires_every_playable_game(): void {
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+        try {
+            finish_attempt::execute($this->agon->cmid);
+            $this->fail('Expected attemptincomplete');
+        } catch (\moodle_exception $e) {
+            $this->assertSame('attemptincomplete', $e->errorcode);
+        }
+    }
+
+    public function test_malformed_payload_scores_zero_not_fatal(): void {
+        // A hand-crafted submission with broken JSON is treated as "no input".
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+        $res = external_api::clean_returnvalue(
+            submit_game::execute_returns(),
+            submit_game::execute($this->agon->cmid, 'question', '{{{not json'));
+        $this->assertEqualsWithDelta(0.0, $res['scorequestion'], 1e-9);
+        $this->assertContains('question', $res['submittedgames']);
     }
 
     public function test_get_sequence_serves_one_coding_sequence_without_answers(): void {

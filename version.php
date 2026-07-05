@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_agon';
-$plugin->release = '0.3.0';
-$plugin->version = 2026070500;
+$plugin->release = '0.3.1';
+$plugin->version = 2026070501;
 $plugin->requires = 2024100708;
 $plugin->maturity = MATURITY_ALPHA;

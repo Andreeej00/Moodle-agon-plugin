@@ -54,8 +54,11 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
             var $ = function(id) { return document.getElementById(id); };
             var root = $('agon-app') || document;
             var games = D.enabledGames || {crossword: true, question: true, coding: true};
+            // Quotes must be escaped too: esc() output lands in attribute values
+            // (data-v="...") — an option like print("hi") would truncate them.
             var esc = function(s) {
-                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
             };
             var announce = function(msg) {
                 var el = $('agon-live');
@@ -107,12 +110,14 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                 n = Math.max(3, Math.min(6, n));
                 return 5 * (n - 1);
             };
-            // Coding budget: 14s per sequence, +6s for each extra line (sub-sequence) in it.
+            // Coding budget: 14s per sequence, +6s for each extra line in it. The
+            // pre-game payload is metadata only ({title, lines}) — the server counts
+            // the non-empty lines, since the code itself is lazy-loaded later.
             var codingSeconds = function() {
                 var seqs = (D.coding && D.coding.sequences) || [];
                 var total = 0;
                 seqs.forEach(function(s) {
-                    var lines = (s.code || '').split('\n').filter(function(l) { return l.trim() !== ''; }).length || 1;
+                    var lines = Math.max(1, parseInt(s.lines, 10) || 1);
                     total += 14 + 6 * (lines - 1);
                 });
                 return total || 14;
@@ -885,12 +890,15 @@ define(['core/ajax', 'core/notification'], function(Ajax, Notification) {
                         userNavigated = true;
                         idx = target;
                         show(flow[idx]);
-                    } else {
+                    } else if (!userNavigated) {
+                        // Fresh attempt — but only settle on the start screen if the student
+                        // hasn't already pressed Start while this response was in flight,
+                        // or the late reply would yank them back off the crossword.
                         show('start');
                     }
                     return resp;
                 })
-                .catch(function(err) { show('start'); Notification.exception(err); });
+                .catch(function(err) { if (!userNavigated) { show('start'); } Notification.exception(err); });
         }
     };
 });

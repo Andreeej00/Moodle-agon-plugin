@@ -109,6 +109,24 @@ final class provider_test extends \advanced_testcase {
         $this->assertFalse($DB->record_exists('agon_attempt', ['agonid' => $this->agon->id]));
     }
 
+    public function test_non_module_contexts_are_ignored(): void {
+        global $DB;
+        $user = $this->getDataGenerator()->create_user();
+        $this->record($user->id, 1.0);
+        $coursecontext = \context_course::instance($this->agon->course);
+
+        // Userlist collection outside a module context stays empty.
+        $userlist = new userlist($coursecontext, 'mod_agon');
+        provider::get_users_in_context($userlist);
+        $this->assertSame([], $userlist->get_userids());
+
+        // Deletes scoped to a non-module context must not touch attempts.
+        provider::delete_data_for_all_users_in_context($coursecontext);
+        provider::delete_data_for_user(new approved_contextlist($user, 'mod_agon', [$coursecontext->id]));
+        provider::delete_data_for_users(new approved_userlist($coursecontext, 'mod_agon', [$user->id]));
+        $this->assertTrue($DB->record_exists('agon_attempt', ['agonid' => $this->agon->id, 'userid' => $user->id]));
+    }
+
     public function test_delete_for_users_list(): void {
         global $DB;
         $u1 = $this->getDataGenerator()->create_user();

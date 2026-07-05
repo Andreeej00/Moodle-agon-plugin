@@ -15,18 +15,25 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Code that is executed before the tables and data are dropped during the plugin uninstallation.
+ * Coverage information for mod_agon.
+ *
+ * The measured surface is the engine + web services (classes/) and the Moodle
+ * callbacks (lib.php). Page scripts (view.php, bank.php, index.php), the form,
+ * settings and upgrade steps are exercised through Behat / the live site, not
+ * unit-covered.
  *
  * @package     mod_agon
- * @category    upgrade
+ * @category    test
  * @copyright   2026 Andrej Micic
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-/**
- * Custom uninstallation procedure.
- */
-function xmldb_agon_uninstall() {
+defined('MOODLE_INTERNAL') || die();
 
-    return true;
-}
+return new class extends phpunit_coverage_info {
+    /** @var array The list of folders relative to the plugin root to include in coverage generation. */
+    protected $includelistfolders = ['classes'];
+
+    /** @var array The list of files relative to the plugin root to include in coverage generation. */
+    protected $includelistfiles = ['lib.php'];
+};

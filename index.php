@@ -34,7 +34,7 @@ require_course_login($course);
 $coursecontext = context_course::instance($course->id);
 
 $event = \mod_agon\event\course_module_instance_list_viewed::create([
-    'context' => $modulecontext,
+    'context' => $coursecontext,
 ]);
 $event->add_record_snapshot('course', $course);
 $event->trigger();
@@ -52,7 +52,7 @@ echo $OUTPUT->heading($modulenameplural);
 $agons = get_all_instances_in_course('agon', $course);
 
 if (empty($agons)) {
-    notice(get_string('no$agoninstances', 'mod_agon'), new moodle_url('/course/view.php', ['id' => $course->id]));
+    notice(get_string('noagoninstances', 'mod_agon'), new moodle_url('/course/view.php', ['id' => $course->id]));
 }
 
 $table = new html_table();

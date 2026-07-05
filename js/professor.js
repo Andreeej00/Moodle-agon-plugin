@@ -3,7 +3,7 @@
 (function(){
   var D = window.AGON; if (!D) return;
 
-  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   // ---------- attempts: search + state filter ----------
   var rows = D.attempts || [];

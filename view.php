@@ -64,7 +64,8 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_context($modulecontext);
 
 // Teachers/assistants get the monitor view; students get the play view.
-$canmanage = has_capability('moodle/course:manageactivities', $modulecontext);
+// Branch on the plugin's own capability, same as the bank + web services.
+$canmanage = has_capability('mod/agon:manage', $modulecontext);
 $view = $canmanage ? 'professor' : 'student';
 
 // A game is only part of the run when its toggle is on AND it has real content.
@@ -108,7 +109,7 @@ $week = $meta['week'] ?? '';
 $topic = ($meta['topic'] ?? '') !== '' ? $meta['topic'] : format_string($moduleinstance->name);
 
 // Students play via the AMD module (which calls the server web services);
-// the teacher monitor still uses the plain professor.js (mock data, Phase 2 step 5).
+// the teacher monitor uses plain professor.js over the real data in window.AGON.
 if ($view === 'student') {
     $PAGE->requires->js_call_amd('mod_agon/player', 'init', [(int)$cm->id]);
 } else {
